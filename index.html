@@ -1,0 +1,2780 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>نيو هاي لايتس - نظام إدارة شركات السياحة والحسابات 🚀</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #334155;
+            --topbar-bg: #ffffff;
+            --border-color: #cbd5e1;
+            --table-header-bg: #f1f5f9;
+            --input-bg: #ffffff;
+            --input-text: #334155;
+        }
+
+        /* 🌙 Dark Mode Variables */
+        body.dark-mode {
+            --primary: #1e293b;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --topbar-bg: #1e293b;
+            --border-color: #334155;
+            --table-header-bg: #334155;
+            --input-bg: #0f172a;
+            --input-text: #f8fafc;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background-color: var(--bg); color: var(--text-main); display: flex; min-height: 100vh; transition: background-color 0.3s, color 0.3s; }
+
+        /* Login Screen Overlay */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            display: flex; justify-content: center; align-items: center; z-index: 99999;
+        }
+        .login-box {
+            background: var(--card-bg); color: var(--text-main); padding: 35px 30px; border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 400px; text-align: center;
+        }
+        .login-box h2 { color: var(--text-main); margin-bottom: 20px; font-size: 22px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
+
+        /* Navigation Sidebar */
+        .sidebar { width: 280px; background-color: var(--primary); color: white; padding: 20px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; overflow-y: auto; }
+        .sidebar .brand { font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 15px; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 12px; }
+        .nav-btn { background: none; border: none; color: #94a3b8; padding: 10px 14px; text-align: right; font-size: 13.5px; cursor: pointer; border-radius: 8px; transition: 0.2s; width: 100%; display: flex; align-items: center; gap: 8px; }
+        .nav-btn:hover:not(.blur-restricted), .nav-btn.active:not(.blur-restricted) { background-color: var(--accent); color: white; font-weight: bold; }
+        
+        .submenu-container { display: none; flex-direction: column; gap: 4px; padding-right: 15px; margin-top: 2px; margin-bottom: 4px; border-right: 2px solid var(--accent); }
+        .submenu-container.open { display: flex; }
+        .sub-nav-btn { font-size: 12.5px; padding: 8px 12px; color: #cbd5e1; }
+
+        /* Main Workspace */
+        .main-content { flex: 1; padding: 25px; overflow-y: auto; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; background: var(--topbar-bg); color: var(--text-main); padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+
+        .dashboard-banner { background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .metric-card { background: var(--card-bg); padding: 18px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-right: 4px solid var(--accent); }
+        .metric-card.success { border-right-color: var(--success); }
+        .metric-card.warning { border-right-color: var(--warning); }
+        .metric-card.danger { border-right-color: var(--danger); }
+        
+        /* Forms & Cards */
+        .section-card { background: var(--card-bg); padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .section-card h3 { color: var(--text-main); margin-bottom: 15px; font-size: 16px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; }
+        .sub-title { font-weight: bold; color: var(--accent); margin: 12px 0 6px 0; grid-column: 1 / -1; font-size: 14px; border-bottom: 1px dashed var(--border-color); padding-bottom: 4px; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+        .trip-supplies-form { direction: ltr; grid-template-columns: repeat(3, minmax(180px, 1fr)); align-items: start; }
+        .trip-supplies-form .form-group { direction: rtl; }
+        .trip-supplies-form > div[style*="grid-column"] { direction: rtl; }
+        .trip-supplies-table { direction: ltr; }
+        .trip-supplies-table th, .trip-supplies-table td { direction: rtl; }
+        @media (max-width: 800px) { .trip-supplies-form { grid-template-columns: 1fr; } .trip-supplies-form > div[style*="grid-column"] { grid-column: 1 !important; } }
+        .form-group { display: flex; flex-direction: column; gap: 5px; text-align: right; }
+        .form-group label { font-size: 12.5px; font-weight: 600; color: var(--text-main); }
+        
+        input, select, textarea { padding: 9px 12px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--input-text); border-radius: 6px; font-size: 13.5px; width: 100%; outline: none; transition: 0.2s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        
+        .btn-submit { background-color: var(--accent); color: white; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+        .btn-submit:hover { background-color: var(--accent-hover); }
+        .btn-success { background-color: var(--success); }
+        .btn-warning { background-color: var(--warning); color: white; }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-theme { background-color: #64748b; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+        .btn-theme:hover { background-color: #475569; }
+        .btn-print { background-color: #0284c7; color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        
+        /* Pricing Calc Cards */
+        .pricing-result-card { background: rgba(22, 163, 74, 0.1); border: 1px solid var(--success); padding: 15px; border-radius: 8px; text-align: center; }
+        .pricing-result-card .price { font-size: 18px; font-weight: bold; color: var(--success); }
+
+        .mini-pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+            grid-column: 1 / -1;
+        }
+        .mini-pricing-card {
+            background: rgba(220, 38, 38, 0.05);
+            border: 1px solid var(--danger);
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .mini-pricing-card .mini-title {
+            font-size: 11px;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        .mini-pricing-card .mini-price {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--danger);
+            margin-top: 2px;
+        }
+
+        /* Tables & Cards */
+        .table-controls { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 12px; flex-wrap: wrap; }
+        .data-table-container { background: var(--card-bg); border-radius: 10px; overflow-x: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 25px; border: 1px solid var(--border-color); }
+        .trip-header-card { background: var(--primary); color: white; padding: 15px 18px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; text-align: right; font-size: 13px; }
+        th, td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        th { background-color: var(--table-header-bg); color: var(--text-main); font-weight: 700; }
+        
+        .btn-del { background-color: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11.5px; }
+
+        .hidden { display: none !important; }
+
+        .mobile-menu-btn, .mobile-sidebar-overlay { display:none; }
+        @media (max-width: 760px) {
+            body { display:block; min-width:0; overflow-x:hidden; }
+            .sidebar { position:fixed; inset:0 auto 0 0; width:min(82vw,310px); height:100vh; transform:translateX(-105%); transition:transform .25s ease-out; z-index:2000; padding:16px; box-shadow:8px 0 24px rgba(15,23,42,.25); }
+            .sidebar.mobile-open { transform:translateX(0); }
+            .mobile-sidebar-overlay { position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:1900; }
+            .mobile-sidebar-overlay.visible { display:block; }
+            .main-content { padding:12px; width:100%; overflow-x:hidden; }
+            .top-bar { position:sticky; top:0; z-index:100; padding:10px 12px; gap:8px; flex-wrap:wrap; }
+            .top-bar > div:first-of-type { order:3; width:100%; font-size:12px; }
+            .mobile-menu-btn { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:8px 12px; border:0; border-radius:8px; background:var(--primary); color:white; font-weight:bold; }
+            .dashboard-banner { padding:16px; }
+            .dashboard-banner h2 { font-size:20px; line-height:1.35; }
+            .metrics-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+            .metric-card { padding:13px 11px; min-width:0; }
+            .metric-title { font-size:11px; line-height:1.4; }
+            .metric-value { font-size:17px; overflow-wrap:anywhere; }
+            .section-card { padding:14px; border-radius:9px; }
+            .form-grid, .trip-supplies-form { grid-template-columns:1fr !important; direction:rtl !important; }
+            .form-grid > *, .trip-supplies-form > * { grid-column:1 !important; }
+            input, select, textarea, button { min-height:44px; font-size:16px; }
+            .btn-submit, .btn-print, .btn-del, .btn-theme { min-height:44px; padding:10px 12px; }
+            .table-controls { display:block; }
+            .data-table-container { margin-left:-2px; margin-right:-2px; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+            table { min-width:720px; }
+            .trip-supplies-table { min-width:760px; }
+            .mini-pricing-grid { grid-template-columns:1fr; }
+            .rooms-grid { grid-template-columns:1fr !important; }
+            #tripTotalSettlementCards { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+        }
+
+        @media print {
+            .sidebar, .section-card, .table-controls, .btn-del, .no-print, .top-bar { display: none !important; }
+            .main-content { padding: 0; }
+            body { background: white; color: black; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 🔒 شاشة تسجيل الدخول -->
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2>🌍 نيو هاي لايتس</h2>
+            <form onsubmit="return handleLogin(event)" style="display:flex; flex-direction:column; gap:15px; text-align:right;" autocomplete="off">
+                <div class="form-group">
+                    <label for="login_username">اسم المستخدم (Username)</label>
+                    <input type="text" id="login_username" name="nh_user_field" required placeholder="اسم المستخدم" autocomplete="off" value="">
+                </div>
+                <div class="form-group">
+                    <label for="login_password">كلمة المرور (Password)</label>
+                    <input type="password" id="login_password" name="nh_pass_field" required placeholder="كلمة المرور" autocomplete="new-password" value="">
+                </div>
+                <button type="submit" class="btn-submit" style="width:100%; margin-top:10px; padding:12px;">تسجيل الدخول 🚀</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- القائمة الجانبية -->
+    <div class="sidebar">
+        <div class="brand">🌍 نيو هاي لايتس</div>
+        <button id="nav_dashboard" class="nav-btn active" onclick="showTab('dashboard', this)">📊 الشاشة الرئيسية</button>
+        <button id="nav_hotels" class="nav-btn" onclick="showTab('hotels', this)">🏨 1. طلب حجز فندق</button>
+        <button id="nav_hajj" class="nav-btn" onclick="showTab('hajj', this)">🕋 2. تسعير الحج والعمرة</button>
+        <button id="nav_trip_data" class="nav-btn" onclick="showTab('trip_data', this)">🧳 3. إدارة وتسكين الرحلات</button>
+        
+        <!-- قسم الرحلات المشتركة مع قائمة منسدلة -->
+        <button id="nav_shared_menu_btn" class="nav-btn" onclick="toggleSharedMenu()">🤝 4. الرحلات المشتركة ▾</button>
+        <div id="shared_submenu" class="submenu-container">
+            <button id="nav_shared_hajj" class="nav-btn sub-nav-btn" onclick="showTab('shared_hajj', this)">🕋 تسعير الرحلات المشتركة</button>
+            <button id="nav_shared_trip_data" class="nav-btn sub-nav-btn" onclick="showTab('shared_trip_data', this)">🧳 تسكين وحجوزات المشتركة</button>
+        </div>
+
+        <button id="nav_dealers" class="nav-btn" onclick="showTab('dealers_page', this)">👥 5. بيان المتعاملين</button>
+        <button id="nav_invoices_sales" class="nav-btn" onclick="showTab('invoices_sales', this)">💵 6. فواتير المبيعات التفصيلية</button>
+        <button id="nav_invoices_purchases" class="nav-btn" onclick="showTab('invoices_purchases', this)">🛒 7. فواتير المشتريات</button>
+        <button id="nav_treasury" class="nav-btn" onclick="showTab('treasury', this)">💰 8. الخزنة والحسابات</button>
+        <button id="nav_reports" class="nav-btn" onclick="showTab('reports', this)">📈 9. التقارير والنسخ الاحتياطي</button>
+        <button id="nav_users" class="nav-btn" onclick="showTab('users_management', this)">🔑 10. إدارة الموظفين والباسورد</button>
+        <button id="nav_trip_supplies" class="nav-btn" onclick="showTab('trip_supplies', this)">📋 11. تصفية وتوريدات الرحلات</button>
+    </div>
+
+    <div id="mobileSidebarOverlay" class="mobile-sidebar-overlay" onclick="toggleMobileSidebar(false)"></div>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="main-content">
+
+        <!-- الشريط العلوي ومعلومات الحساب -->
+        <div class="top-bar">
+            <button type="button" class="mobile-menu-btn" onclick="toggleMobileSidebar()">☰ القائمة</button>
+            <div style="display:flex;align-items:center;gap:12px">
+                <span id="server_connection_status" style="font-size:12px;color:#d97706;font-weight:bold">⏳ جاري الاتصال بالسيرفر...</span>
+                <b>مرحباً بك: </b><span id="current_user_display" style="color:var(--accent); font-weight:bold;">---</span> 
+                (<span id="current_role_display" style="color:#d97706; font-size:12px; font-weight:bold;">---</span>)
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button id="darkModeToggle" class="btn-theme" onclick="toggleDarkMode()">🌙 الوضع الليلي</button>
+                <button class="btn-submit btn-danger" onclick="handleLogout()" style="padding:6px 14px; font-size:12px;">🔒 تسجيل الخروج</button>
+            </div>
+        </div>
+
+        <!-- 📊 Dashboard -->
+        <div id="dashboard" class="tab-panel active">
+            <div class="dashboard-banner">
+                <h2>نظام شركة نيو هاي لايتس لإدارة السياحة والحسابات (سحابي) 🚀</h2>
+                <p>متابعة حركة الأداء اليومية، الفواتير التفصيلية، الخزينة، والتسويات وتوريدات الرحلات.</p>
+            </div>
+            <div class="metrics-grid">
+                <div class="metric-card success"><div class="metric-title">إجمالي مبيعات الفواتير</div><div class="metric-value" id="dash-sales">0 ج.م</div></div>
+                <div class="metric-card danger"><div class="metric-title">إجمالي إشتراءات الموردين</div><div class="metric-value" id="dash-costs">0 ج.م</div></div>
+                <div class="metric-card warning"><div class="metric-title">رصيد خزنة الجنيه (EGP)</div><div class="metric-value" id="dash-cash-egp">0 ج.م</div></div>
+                <div class="metric-card"><div class="metric-title">رصيد خزنة التوريدات المستقلة</div><div class="metric-value" id="dash-cash-supplies">0 ج.م</div></div>
+            </div>
+            <div style="display:flex;justify-content:flex-start;margin:4px 0 12px"><button type="button" class="btn-theme" onclick="toggleDashboardExtraCards()">⚙️ إظهار / إخفاء المربعات الإضافية</button></div>
+            <div class="metrics-grid" id="dashboardExtraCards">
+                <div class="metric-card" data-dashboard-card="sar"><div class="metric-title">رصيد خزنة الريال السعودي</div><div class="metric-value" id="dash-cash-sar">0 ر.س</div></div>
+                <div class="metric-card success" data-dashboard-card="pilgrims"><div class="metric-title">عدد المعتمرين حسب البرنامج</div><div id="dash-pilgrims-by-program" style="font-size:13px;line-height:1.8">لا توجد رحلات مسجلة</div></div>
+                <div class="metric-card warning" data-dashboard-card="trips"><div class="metric-title">إجمالي الرحلات</div><div class="metric-value" id="dash-trip-count">0</div></div>
+                <div class="metric-card danger" data-dashboard-card="agents"><div class="metric-title">إجمالي المندوبين</div><div class="metric-value" id="dash-agent-count">0</div></div>
+            </div>
+        </div>
+
+        <!-- 🏨 1. طلب حجز فندق -->
+        <div id="hotels" class="tab-panel">
+            <h2>🏨 تسجيل طلب حجز فندق</h2><br>
+            <div class="section-card">
+                <form onsubmit="addHotelBooking(event)" class="form-grid">
+                    <div class="form-group"><label>اسم الفندق</label><input type="text" id="hb_hotel_name" required placeholder="مثال: فندق الفيروز"></div>
+                    <div class="form-group"><label>نوع الغرفة</label><input type="text" id="hb_room_type" placeholder="رباعي / ثلاثي / ثنائي"></div>
+                    <div class="form-group"><label>عدد الغرف</label><input type="number" id="hb_room_count" min="1" value="1" required></div>
+                    <div class="form-group"><label>🌙 عدد الليالي</label><input type="number" id="hb_nights_count" min="1" value="1" required></div>
+                    <div class="form-group"><label>تاريخ الدخول</label><input type="date" id="hb_checkin" required></div>
+                    <div class="form-group"><label>تاريخ الخروج</label><input type="date" id="hb_checkout" required></div>
+                    <button type="submit" class="btn-submit" style="grid-column: 1/-1;">حفظ طلب الحجز</button>
+                </form>
+            </div>
+            <div class="data-table-container">
+                <table id="hotelBookingTable">
+                    <thead><tr><th>م</th><th>اسم الفندق</th><th>نوع الغرفة</th><th>عدد الغرف</th><th>الليالي</th><th>الدخول</th><th>الخروج</th><th>العمليات</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 🕋 2. تسعير برامج الحج والعمرة -->
+        <div id="hajj" class="tab-panel">
+            <h2>🕋 حاسبة تسعير برامج الحج والعمرة الشاملة</h2><br>
+            <div class="section-card">
+                <form onsubmit="addHajjProgram(event)">
+                    <div class="form-grid">
+                        <div class="sub-title">1. البيانات الأساسية وسعر الصرف</div>
+                        <div class="form-group" style="grid-column: 1 / -1;"><label>اسم البرنامج / الرحلة</label><input type="text" id="hj_name" required placeholder="مثال: عمرة رجب - مستوى أربعة نجوم"></div>
+                        
+                        <div class="form-group"><label>إجمالي عدد المعتمرين للرحلة (مقاعد الرحلة)</label><input type="number" id="hj_total_pilgrims" min="1" value="50" required placeholder="مثال: 50"></div>
+                        <div class="form-group"><label>سعر صرف الريال (ج.م)</label><input type="number" step="0.01" id="hj_sar_rate" value="13.20" oninput="calculatePricing()" required></div>
+
+                        <div class="sub-title">2. السكن والفنادق (بالريال السعودي SAR)</div>
+                        <div class="form-group"><label>سعر الغرفة في مكة / ليلة</label><input type="number" id="hj_makkah_rate" value="0" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>عدد ليالي مكة</label><input type="number" id="hj_makkah_nights" value="5" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>سعر الغرفة في المدينة / ليلة</label><input type="number" id="hj_madinah_rate" value="0" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>عدد ليالي المدينة</label><input type="number" id="hj_madinah_nights" value="5" oninput="calculatePricing()"></div>
+
+                        <div class="sub-title">3. الانتقالات والمشاعر والتأشيرة (بالريال السعودي SAR)</div>
+                        <div class="form-group"><label>التأشيرة + التأمين (SAR)</label><input type="number" id="hj_visa_sar" value="750" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>مزارات وانتقالات داخلية (SAR)</label><input type="number" id="hj_trans_sar" value="300" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>خدمات ومشاعر / أخرى (SAR)</label><input type="number" id="hj_services_sar" value="0" oninput="calculatePricing()"></div>
+
+                        <div class="sub-title">4. التكاليف الإدارية والطيران (بالجنيه المصري EGP)</div>
+                        <div class="form-group"><label>تذكرة الطيران (EGP)</label><input type="number" id="hj_flight_egp" value="12000" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>رسوم البوابة والباركود (EGP)</label><input type="number" id="hj_barcode_egp" value="3500" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>هدايا ومصروفات إدارية (EGP)</label><input type="number" id="hj_admin_egp" value="1000" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>بدل المشرف (EGP)</label><input type="number" id="hj_supervisor_egp" value="500" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>عمولة المندوب (EGP)</label><input type="number" id="hj_agent_comm_egp" value="500" oninput="calculatePricing()"></div>
+                        <div class="form-group"><label>هامش الربح المستهدف لكل فرد (EGP)</label><input type="number" id="hj_profit_egp" value="5000" oninput="calculatePricing()"></div>
+                    </div>
+
+                    <div style="margin-top:20px; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                        <div class="pricing-result-card">
+                            <div style="font-size:12px; color:var(--text-main);">سعر الفرد (رباعي)</div>
+                            <div class="price" id="calc_quad">0 ج.م</div>
+                        </div>
+                        <div class="pricing-result-card">
+                            <div style="font-size:12px; color:var(--text-main);">سعر الفرد (ثلاثي)</div>
+                            <div class="price" id="calc_triple">0 ج.م</div>
+                        </div>
+                        <div class="pricing-result-card">
+                            <div style="font-size:12px; color:var(--text-main);">سعر الفرد (ثنائي)</div>
+                            <div class="price" id="calc_double">0 ج.م</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                        <button type="submit" class="btn-submit btn-success" style="flex:2;">💾 حفظ وتسجيل البرنامج</button>
+                        <button type="button" class="btn-print" style="flex:1;" onclick="printCurrentFormPricing()">🖨️ طباعة تسعير النموذج الحالي</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="data-table-container">
+                <table id="hajjTable">
+                    <thead>
+                        <tr>
+                            <th>اسم البرنامج</th>
+                            <th>إجمالي المقاعد</th>
+                            <th>سعر الريال</th>
+                            <th>سعر الفرد (رباعي)</th>
+                            <th>سعر الفرد (ثلاثي)</th>
+                            <th>سعر الفرد (ثنائي)</th>
+                            <th>العمليات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 🧳 3. إدارة وتسكين الرحلات -->
+        <div id="trip_data" class="tab-panel">
+            <h2>🧳 إدارة وتسكين الرحلات والمعتمرين</h2><br>
+            <div class="section-card">
+                <h3>إضافة معتمر إلى رحلة</h3>
+                <form onsubmit="addTripPassenger(event)" class="form-grid">
+                    <div class="form-group">
+                        <label>اسم الرحلة / البرنامج</label>
+                        <select id="tp_trip_name" required onchange="updateRoomPricesDisplay()">
+                            <option value="">اختر الرحلة / البرنامج...</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>تاريخ السفر</label><input type="date" id="tp_travel_date" required></div>
+                    <div class="form-group"><label>اسم المعتمر</label><input type="text" id="tp_passenger_name" required placeholder="الاسم الثلاثي أو الرباعي"></div>
+                    <div class="form-group"><label>رقم تليفون المعتمر</label><input type="tel" id="tp_passenger_phone" required placeholder="01xxxxxxxxx"></div>
+                    <div class="form-group"><label>اسم المندوب التابع له</label><input type="text" id="tp_agent_name" required placeholder="اسم المندوب"></div>
+                    
+                    <div class="form-group">
+                        <label>نوع الغرفة المحجوزة</label>
+                        <select id="tp_room_type" required>
+                            <option value="رباعي">رباعي (غرفة 4 أشخاص)</option>
+                            <option value="ثلاثي">ثلاثي (غرفة 3 أشخاص)</option>
+                            <option value="ثنائي">ثنائي (غرفة شخصين)</option>
+                            <option value="خماسي">خماسي (غرفة 5 أشخاص)</option>
+                        </select>
+                    </div>
+
+                    <div class="mini-pricing-grid">
+                        <div class="mini-pricing-card">
+                            <div class="mini-title">سعر الفرد (رباعي)</div>
+                            <div class="mini-price" id="display_price_quad">0 ج.م</div>
+                        </div>
+                        <div class="mini-pricing-card">
+                            <div class="mini-title">سعر الفرد (ثلاثي)</div>
+                            <div class="mini-price" id="display_price_triple">0 ج.م</div>
+                        </div>
+                        <div class="mini-pricing-card">
+                            <div class="mini-title">سعر الفرد (ثنائي)</div>
+                            <div class="mini-price" id="display_price_double">0 ج.م</div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit btn-success" style="grid-column: 1/-1; margin-top: 10px;">💾 حفظ وتسجيل البيانات</button>
+                </form>
+            </div>
+
+            <!-- أزرار التسكين التلقائي، إلغاء التسكين، وتحديد المعتمرين والطباعة -->
+            <div class="section-card" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <button type="button" class="btn-submit" style="background-color: var(--accent);" onclick="autoAssignRoomsModal()">⚡ التسكين التلقائي للرحلة</button>
+                <button type="button" class="btn-submit btn-danger" onclick="cancelAccommodationModal()">❌ إلغاء التسكين</button>
+                <button type="button" class="btn-submit btn-warning" onclick="toggleSelectAllPassengers()">✅ تحديد / إلغاء تحديد كل المعتمرين</button>
+                <select id="room_filter_trip_select" onchange="renderTripTables()" style="flex: 1; min-width: 180px;">
+                    <option value="">فلترة الغرف حسب الرحلة...</option>
+                </select>
+                <button type="button" class="btn-print" onclick="printRoomsReport()">🖨️ طباعة الغرف للرحلة المختارة</button>
+            </div>
+
+            <div class="section-card">
+                <div class="table-controls">
+                    <div style="flex: 1; min-width: 250px;">
+                        <label style="font-weight:bold; font-size:13px;">🔎 تصفية وبحث باسم الرحلة أو المعتمر:</label>
+                        <input type="text" id="search_trip_query" oninput="renderTripTables()" placeholder="اكتب للبحث..." style="margin-top:5px;">
+                    </div>
+                </div>
+
+                <div id="completed_rooms_counter_box" style="margin-top: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
+                    <div style="background: rgba(22,163,74,0.1); border: 1px solid var(--success); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 11px; font-weight: bold; color: var(--success);">غرف رباعية كاملة</div>
+                        <div id="count_completed_quad" style="font-size: 18px; font-weight: bold; color: var(--success); margin-top: 3px;">0</div>
+                    </div>
+                    <div style="background: rgba(22,163,74,0.1); border: 1px solid var(--success); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 11px; font-weight: bold; color: var(--success);">غرف ثلاثية كاملة</div>
+                        <div id="count_completed_triple" style="font-size: 18px; font-weight: bold; color: var(--success); margin-top: 3px;">0</div>
+                    </div>
+                    <div style="background: rgba(22,163,74,0.1); border: 1px solid var(--success); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 11px; font-weight: bold; color: var(--success);">غرف ثنائية كاملة</div>
+                        <div id="count_completed_double" style="font-size: 18px; font-weight: bold; color: var(--success); margin-top: 3px;">0</div>
+                    </div>
+                    <div style="background: rgba(22,163,74,0.1); border: 1px solid var(--success); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 11px; font-weight: bold; color: var(--success);">غرف خماسية كاملة</div>
+                        <div id="count_completed_quintuple" style="font-size: 18px; font-weight: bold; color: var(--success); margin-top: 3px;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="trips_tables_container"></div>
+        </div>
+
+        <!-- 🤝 4.1 تسعير الرحلات المشتركة -->
+        <div id="shared_hajj" class="tab-panel">
+            <h2>🤝 حاسبة تسعير الرحلات المشتركة</h2><br>
+            <div class="section-card">
+                <form onsubmit="addSharedHajjProgram(event)">
+                    <div class="form-grid">
+                        <div class="sub-title">1. البيانات الأساسية وسعر الصرف (الرحلات المشتركة)</div>
+                        <div class="form-group" style="grid-column: 1 / -1;"><label>اسم رحلة المشتركة / البرنامج</label><input type="text" id="sh_hj_name" required placeholder="مثال: رحلة مشتركة - مستوى مميز"></div>
+                        
+                        <div class="form-group"><label>إجمالي عدد الأفراد بالرحلة المشتركة</label><input type="number" id="sh_hj_total_pilgrims" min="1" value="50" required></div>
+                        <div class="form-group"><label>سعر صرف الريال (ج.م)</label><input type="number" step="0.01" id="sh_hj_sar_rate" value="13.20" oninput="calculateSharedPricing()" required></div>
+
+                        <div class="sub-title">2. السكن والفنادق (بالريال السعودي SAR)</div>
+                        <div class="form-group"><label>سعر الغرفة في مكة / ليلة</label><input type="number" id="sh_hj_makkah_rate" value="0" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>عدد ليالي مكة</label><input type="number" id="sh_hj_makkah_nights" value="5" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>سعر الغرفة في المدينة / ليلة</label><input type="number" id="sh_hj_madinah_rate" value="0" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>عدد ليالي المدينة</label><input type="number" id="sh_hj_madinah_nights" value="5" oninput="calculateSharedPricing()"></div>
+
+                        <div class="sub-title">3. الانتقالات والمشاعر والتأشيرة (بالريال السعودي SAR)</div>
+                        <div class="form-group"><label>التأشيرة + التأمين (SAR)</label><input type="number" id="sh_hj_visa_sar" value="750" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>مزارات وانتقالات داخلية (SAR)</label><input type="number" id="sh_hj_trans_sar" value="300" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>خدمات ومشاعر / أخرى (SAR)</label><input type="number" id="sh_hj_services_sar" value="0" oninput="calculateSharedPricing()"></div>
+
+                        <div class="sub-title">4. التكاليف الإدارية والطيران (بالجنيه المصري EGP)</div>
+                        <div class="form-group"><label>تذكرة الطيران (EGP)</label><input type="number" id="sh_hj_flight_egp" value="12000" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>رسوم البوابة والباركود (EGP)</label><input type="number" id="sh_hj_barcode_egp" value="3500" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>هدايا ومصروفات إدارية (EGP)</label><input type="number" id="sh_hj_admin_egp" value="1000" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>بدل المشرف (EGP)</label><input type="number" id="sh_hj_supervisor_egp" value="500" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>عمولة المندوب (EGP)</label><input type="number" id="sh_hj_agent_comm_egp" value="500" oninput="calculateSharedPricing()"></div>
+                        <div class="form-group"><label>هامش الربح المستهدف لكل فرد (EGP)</label><input type="number" id="sh_hj_profit_egp" value="5000" oninput="calculateSharedPricing()"></div>
+                    </div>
+
+                    <div style="margin-top:20px; display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                        <div class="pricing-result-card">
+                            <div style="font-size:12px; color:var(--text-main);">سعر الفرد (رباعي)</div>
+                            <div class="price" id="sh_calc_quad">0 ج.م</div>
+                        </div>
+                        <div class="pricing-result-card">
+                            <div style="font-size:12px; color:var(--text-main);">سعر الفرد (ثلاثي)</div>
+                            <div class="price" id="sh_calc_triple">0 ج.م</div>
+                        </div>
+                        <div class="pricing-result-card">
+                            <div style="font-size:12px; color:var(--text-main);">سعر الفرد (ثنائي)</div>
+                            <div class="price" id="sh_calc_double">0 ج.م</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                        <button type="submit" class="btn-submit btn-success" style="flex:2;">💾 حفظ وتسجيل برنامج الرحلة المشتركة</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="data-table-container">
+                <table id="sharedHajjTable">
+                    <thead>
+                        <tr>
+                            <th>اسم برنامج المشتركة</th>
+                            <th>إجمالي المقاعد</th>
+                            <th>سعر الريال</th>
+                            <th>سعر الفرد (رباعي)</th>
+                            <th>سعر الفرد (ثلاثي)</th>
+                            <th>سعر الفرد (ثنائي)</th>
+                            <th>العمليات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 🤝 4.2 إدارة وتسكين الرحلات المشتركة -->
+        <div id="shared_trip_data" class="tab-panel">
+            <h2>🤝 إدارة وتسكين الرحلات المشتركة والحجوزات</h2><br>
+            <div class="section-card">
+                <h3>إضافة مسافر / معتمر إلى رحلة مشتركة</h3>
+                <form onsubmit="addSharedTripPassenger(event)" class="form-grid">
+                    <div class="form-group">
+                        <label>اسم الرحلة المشتركة / البرنامج</label>
+                        <select id="sh_tp_trip_name" required onchange="updateSharedRoomPricesDisplay()">
+                            <option value="">اختر الرحلة المشتركة...</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>تاريخ السفر</label><input type="date" id="sh_tp_travel_date" required></div>
+                    <div class="form-group"><label>اسم المسافر</label><input type="text" id="sh_tp_passenger_name" required placeholder="الاسم الثلاثي أو الرباعي"></div>
+                    <div class="form-group"><label>رقم تليفون المسافر</label><input type="tel" id="sh_tp_passenger_phone" required placeholder="01xxxxxxxxx"></div>
+                    <div class="form-group"><label>اسم المندوب التابع له</label><input type="text" id="sh_tp_agent_name" required placeholder="اسم المندوب"></div>
+                    
+                    <div class="form-group">
+                        <label>نوع الغرفة المحجوزة</label>
+                        <select id="sh_tp_room_type" required>
+                            <option value="رباعي">رباعي (غرفة 4 أشخاص)</option>
+                            <option value="ثلاثي">ثلاثي (غرفة 3 أشخاص)</option>
+                            <option value="ثنائي">ثنائي (غرفة شخصين)</option>
+                            <option value="خماسي">خماسي (غرفة 5 أشخاص)</option>
+                        </select>
+                    </div>
+
+                    <div class="mini-pricing-grid">
+                        <div class="mini-pricing-card">
+                            <div class="mini-title">سعر الفرد (رباعي)</div>
+                            <div class="mini-price" id="sh_display_price_quad">0 ج.م</div>
+                        </div>
+                        <div class="mini-pricing-card">
+                            <div class="mini-title">سعر الفرد (ثلاثي)</div>
+                            <div class="mini-price" id="sh_display_price_triple">0 ج.م</div>
+                        </div>
+                        <div class="mini-pricing-card">
+                            <div class="mini-title">سعر الفرد (ثنائي)</div>
+                            <div class="mini-price" id="sh_display_price_double">0 ج.م</div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit btn-success" style="grid-column: 1/-1; margin-top: 10px;">💾 حفظ وتسجيل البيانات بالرحلات المشتركة</button>
+                </form>
+            </div>
+
+            <!-- أزرار التسكين التلقائي وإلغاء التسكين للرحلات المشتركة -->
+            <div class="section-card" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <button type="button" class="btn-submit" style="background-color: var(--accent);" onclick="autoAssignSharedRoomsModal()">⚡ التسكين التلقائي للرحلة المشتركة</button>
+                <button type="button" class="btn-submit btn-danger" onclick="cancelSharedAccommodationModal()">❌ إلغاء التسكين المشترك</button>
+                <button type="button" class="btn-submit btn-warning" onclick="toggleSelectAllSharedPassengers()">✅ تحديد / إلغاء تحديد كل المسافرين</button>
+                <select id="shared_room_filter_trip_select" onchange="renderSharedTripTables()" style="flex:1; min-width:180px;"><option value="">فلترة الغرف حسب الرحلة المشتركة...</option></select>
+                <button type="button" class="btn-print" onclick="printSharedRoomsReport()">🖨️ طباعة الغرف للرحلة المشتركة</button>
+            </div>
+
+            <div class="section-card">
+                <div class="table-controls">
+                    <div style="flex: 1; min-width: 250px;">
+                        <label style="font-weight:bold; font-size:13px;">🔎 تصفية وبحث في الرحلات المشتركة:</label>
+                        <input type="text" id="search_shared_trip_query" oninput="renderSharedTripTables()" placeholder="اكتب للبحث..." style="margin-top:5px;">
+                    </div>
+                </div>
+
+                <div id="shared_completed_rooms_counter_box" style="margin-top: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
+                    <div style="background: rgba(22,163,74,0.1); border: 1px solid var(--success); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 11px; font-weight: bold; color: var(--success);">غرف رباعية كاملة (مشتركة)</div>
+                        <div id="sh_count_completed_quad" style="font-size: 18px; font-weight: bold; color: var(--success); margin-top: 3px;">0</div>
+                    </div>
+                    <div style="background: rgba(22,163,74,0.1); border: 1px solid var(--success); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 11px; font-weight: bold; color: var(--success);">غرف ثلاثية كاملة (مشتركة)</div>
+                        <div id="sh_count_completed_triple" style="font-size: 18px; font-weight: bold; color: var(--success); margin-top: 3px;">0</div>
+                    </div>
+                    <div style="background: rgba(22,163,74,0.1); border: 1px solid var(--success); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 11px; font-weight: bold; color: var(--success);">غرف ثنائية كاملة (مشتركة)</div>
+                        <div id="sh_count_completed_double" style="font-size: 18px; font-weight: bold; color: var(--success); margin-top: 3px;">0</div>
+                    </div>
+                    <div style="background: rgba(22,163,74,0.1); border: 1px solid var(--success); padding: 10px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 11px; font-weight: bold; color: var(--success);">غرف خماسية كاملة (مشتركة)</div>
+                        <div id="sh_count_completed_quintuple" style="font-size: 18px; font-weight: bold; color: var(--success); margin-top: 3px;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="shared_trips_tables_container"></div>
+        </div>
+
+        <!-- 👥 صفحة بيان المتعاملين -->
+        <div id="dealers_page" class="tab-panel">
+            <h2>👥 بيان المتعاملين</h2><br>
+            <div class="section-card">
+                <form onsubmit="addDealer(event)" class="form-grid">
+                    <div class="form-group">
+                        <label>النوع</label>
+                        <select id="dlr_type" onchange="handleDealerTypeChange()" required>
+                            <option value="الموردين">الموردين</option>
+                            <option value="العملاء">العملاء</option>
+                            <option value="الموظفين">الموظفين</option>
+                            <option value="المصروفات">المصروفات</option>
+                            <option value="الاستحقاقات">الاستحقاقات</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: 1/-1;">
+                        <label>الاسم</label>
+                        <input type="text" id="dlr_name" required placeholder="أدخل الاسم...">
+                    </div>
+
+                    <div class="form-group field-extra client-supplier-field">
+                        <label>مجال العمل</label>
+                        <input type="text" id="dlr_business_field" placeholder="مثال: سياحة / طيران / خدمات">
+                    </div>
+
+                    <div class="form-group field-extra client-supplier-field">
+                        <label>رقم التليفون</label>
+                        <input type="tel" id="dlr_phone" placeholder="01xxxxxxxxx">
+                    </div>
+
+                    <button type="submit" class="btn-submit btn-success" style="grid-column: 1/-1;">💾 حفظ المتعامل</button>
+                </form>
+            </div>
+
+            <div class="data-table-container">
+                <table id="dealersTable">
+                    <thead>
+                        <tr>
+                            <th>م</th>
+                            <th>النوع</th>
+                            <th>الاسم</th>
+                            <th>مجال العمل</th>
+                            <th>رقم التليفون</th>
+                            <th>العمليات</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 💵 6. فواتير المبيعات التفصيلية -->
+        <div id="invoices_sales" class="tab-panel">
+            <h2>💵 إصدار فاتورة مبيعات تفصيلية</h2><br>
+            <div class="section-card">
+                <form onsubmit="addSalesInvoice(event)">
+                    <div class="form-grid" style="margin-bottom:15px;">
+                        <div class="form-group"><label>العميل</label><select id="inv_sale_client" required></select></div>
+                        <div class="form-group"><label>رقم المجموعة (Group No)</label><input type="text" id="inv_sale_group" placeholder="مثال: G-102" required></div>
+                        <div class="form-group">
+                            <label>طريقة الدفع</label>
+                            <select id="inv_sale_payment_type" onchange="toggleSalesDueDateGroup()">
+                                <option value="نقداً">نقداً (ترحيل مباشر للخزنة)</option>
+                                <option value="آجل">آجل (تسجيل على العميل ودين مستحق)</option>
+                            </select>
+                        </div>
+                        <div class="form-group hidden" id="salesDueDateGroup">
+                            <label>تاريخ استحقاق السداد</label>
+                            <input type="date" id="inv_sale_due_date">
+                        </div>
+                    </div>
+
+                    <h4 style="margin: 15px 0 10px 0; color:var(--accent);">📋 تفاصيل بنود الفاتورة:</h4>
+                    <div class="data-table-container" style="margin-bottom: 15px;">
+                        <table id="salesItemsTable">
+                            <thead>
+                                <tr>
+                                    <th>البيان / نوع الخدمة</th>
+                                    <th>الفئة العمرية</th>
+                                    <th>العدد</th>
+                                    <th>العملة</th>
+                                    <th>سعر الفرد</th>
+                                    <th>سعر الصرف للريال</th>
+                                    <th>الإجمالي الفرعي</th>
+                                    <th>حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="salesItemsTbody"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn-submit" style="background:#0284c7; margin-bottom:15px;" onclick="addSalesItemRow()">➕ إضافة بند جديد للفاتورة</button>
+
+                    <div style="background:var(--table-header-bg); padding:15px; border-radius:8px; display:flex; flex-direction:column; gap:8px;">
+                        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; color:var(--text-main);">
+                            <span>إجمالي مبالغ الجنيه (EGP):</span>
+                            <span id="sales_total_egp" style="color:var(--success);">0 ج.م</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; color:var(--text-main);">
+                            <span>إجمالي مبالغ الريال (SAR):</span>
+                            <span id="sales_total_sar" style="color:var(--warning);">0 ر.س</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit btn-success" style="width:100%; margin-top:15px; font-size:15px;">💾 إصدار الفاتورة وترحيل الحسابات</button>
+                </form>
+            </div>
+
+            <div class="data-table-container">
+                <table id="salesInvoicesTable">
+                    <thead><tr><th>رقم الفاتورة</th><th>رقم المجموعة</th><th>العميل</th><th>طريقة الدفع</th><th>تاريخ الاستحقاق</th><th>إجمالي (EGP)</th><th>إجمالي (SAR)</th><th>التاريخ</th><th>العمليات والطباعة</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 🛒 7. فواتير المشتريات -->
+        <div id="invoices_purchases" class="tab-panel">
+            <h2>🛒 تسجيل فاتورة مشتريات</h2><br>
+            <div class="section-card">
+                <form onsubmit="addPurchaseInvoice(event)">
+                    <div class="form-grid" style="margin-bottom:15px;">
+                        <div class="form-group"><label>المورد</label><select id="inv_pur_supplier" required></select></div>
+                        <div class="form-group">
+                            <label>نوع العملية</label>
+                            <select id="inv_pur_payment_type" onchange="togglePurchaseDueDateGroup()">
+                                <option value="نقداً">نقداً (ترحيل مباشر للخزنة)</option>
+                                <option value="آجل">آجل (تسجيل دين مستحق للمورد)</option>
+                            </select>
+                        </div>
+                        <div class="form-group hidden" id="purchaseDueDateGroup">
+                            <label>تاريخ استحقاق السداد</label>
+                            <input type="date" id="inv_pur_due_date">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;"><label>ملاحظات الفاتورة</label><input type="text" id="inv_pur_notes" placeholder="ملاحظات عامة على الفاتورة..."></div>
+                    </div>
+
+                    <h4 style="margin: 15px 0 10px 0; color:var(--accent);">📋 بنود المشتريات:</h4>
+                    <div class="data-table-container" style="margin-bottom: 15px;">
+                        <table id="purchaseItemsTable">
+                            <thead>
+                                <tr>
+                                    <th>البيان (اختر أو أدخل يدوياً)</th>
+                                    <th>العدد</th>
+                                    <th>السعر</th>
+                                    <th>العملة</th>
+                                    <th>سعر الصرف للريال (إن وجد)</th>
+                                    <th>الإجمالي الفرعي</th>
+                                    <th>حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="purchaseItemsTbody"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn-submit" style="background:#0284c7; margin-bottom:15px;" onclick="addPurchaseItemRow()">➕ إضافة بند</button>
+
+                    <div style="background:var(--table-header-bg); padding:15px; border-radius:8px; display:flex; flex-direction:column; gap:8px; margin-bottom:15px;">
+                        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; color:var(--text-main);">
+                            <span>إجمالي المشتريات بالجنيه (EGP):</span>
+                            <span id="pur_total_egp" style="color:var(--success);">0 ج.م</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; color:var(--text-main);">
+                            <span>إجمالي المشتريات بالريال (SAR):</span>
+                            <span id="pur_total_sar" style="color:var(--warning);">0 ر.س</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit btn-success" style="width:100%; font-size:15px;">💾 اصدار وترحيل فاتورة المشتريات</button>
+                </form>
+            </div>
+
+            <div class="data-table-container">
+                <table id="purchaseInvoicesTable">
+                    <thead>
+                        <tr>
+                            <th>رقم الفاتورة</th>
+                            <th>المورد</th>
+                            <th>نوع العملية</th>
+                            <th>تاريخ الاستحقاق</th>
+                            <th>الملاحظات</th>
+                            <th>الإجمالي (EGP)</th>
+                            <th>الإجمالي (SAR)</th>
+                            <th>التاريخ</th>
+                            <th>العمليات والطباعة</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 💰 8. الخزنة والحسابات -->
+        <div id="treasury" class="tab-panel">
+            <h2>💰 إدارة الخزنة والحركات المالية وسندات القبض والصرف</h2><br>
+            <div class="metrics-grid">
+                <div class="metric-card warning"><div class="metric-title">رصيد خزنة الجنيه المصري</div><div class="metric-value" id="cash_egp_val">0 ج.م</div></div>
+                <div class="metric-card"><div class="metric-title">رصيد خزنة الريال السعودي</div><div class="metric-value" id="cash_sar_val">0 ر.س</div></div>
+                <div class="metric-card success"><div class="metric-title">رصيد خزنة التوريدات المستقلة</div><div class="metric-value" id="cash_supplies_val">0 ج.م</div></div>
+            </div>
+
+            <div class="section-card">
+                <h3>إضافة سند (قبض / صرف) تلقائي الترقيم والترحيل</h3>
+                <form onsubmit="addTreasuryTx(event)" class="form-grid">
+                    <div class="form-group">
+                        <label>نوع الحركة</label>
+                        <select id="tx_type" onchange="updateVoucherIdPrefix()">
+                            <option value="قبض">سند قبض</option>
+                            <option value="صرف">سند صرف</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>رقم السند التلقائي</label>
+                        <input type="text" id="tx_voucher_id" readonly style="background:var(--table-header-bg); font-weight:bold;">
+                    </div>
+
+                    <div class="form-group">
+                        <label>📅 التاريخ</label>
+                        <input type="date" id="tx_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>💰 طريقة الدفع (الخزنة / الحساب)</label>
+                        <select id="tx_payment_method" onchange="handleTreasuryMethodChange(); spellOutAmount()" required>
+                            <option value="خزنة الجنيه">خزنة الجنيه المصري (EGP)</option>
+                            <option value="خزنة الريال">خزنة الريال السعودي (SAR)</option>
+                            <option value="خزنة التوريدات">خزنة التوريدات المستقلة</option>
+                            <option value="حساب البنك">حساب البنك</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>💱 معدل تحويل سعر صرف الريال</label>
+                        <input type="number" step="0.01" id="tx_sar_rate" value="13.20">
+                    </div>
+
+                    <div class="form-group">
+                        <label>🏷️ النوع (عميل / مورد / مصروفات)</label>
+                        <select id="tx_party_type" onchange="populatePartyNames()" required>
+                            <option value="عميل">عميل</option>
+                            <option value="مورد">مورد</option>
+                            <option value="أخرى">أخرى / مصروفات</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>👤 الاسم (متزامن مع المتعاملين)</label>
+                        <select id="tx_party_name" required></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>💵 المبلغ</label>
+                        <input type="number" step="0.01" id="tx_amount" oninput="spellOutAmount()" required placeholder="أدخل المبلغ...">
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1/-1;">
+                        <label>📜 تفقيط المبلغ بالحروف العربية:</label>
+                        <div id="tx_amount_spelled" style="background:var(--table-header-bg); padding:10px; border-radius:6px; font-weight:bold; color:var(--accent);">صفر</div>
+                    </div>
+
+                    <div class="form-group" style="grid-column: 1/-1;">
+                        <label>📝 ملاحظات</label>
+                        <input type="text" id="tx_notes" placeholder="ملاحظات تفصيلية حول السند...">
+                    </div>
+
+                    <div style="grid-column: 1/-1; display:flex; gap:10px; margin-top:10px;">
+                        <button type="button" class="btn-submit btn-print" style="flex:1;" onclick="printCurrentTreasuryVoucher()">🖨️ طباعة قبل الحفظ</button>
+                        <button type="submit" class="btn-submit btn-success" style="flex:2;">💾 حفظ السند وترحيله</button>
+                        <button type="reset" class="btn-submit" style="background:#64748b; flex:1;" onclick="setTimeout(initTreasuryForm, 50)">تفريغ الحقول</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="section-card" style="border: 2px solid var(--accent);">
+                <div class="table-controls">
+                    <div style="flex: 1; min-width: 300px;">
+                        <label style="font-weight:bold; font-size:13px; color:var(--accent);">🔎 ابحث برقم السند أو اسم العميل أو المورد لعرض السندات:</label>
+                        <input type="text" id="search_treasury_global" oninput="renderTreasuryTable()" placeholder="اكتب للبحث وإظهار السندات المطلوبة..." style="margin-top:5px; border-color:var(--accent);">
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-table-container">
+                <table id="treasuryTable">
+                    <thead>
+                        <tr>
+                            <th>رقم السند</th>
+                            <th>التاريخ</th>
+                            <th>نوع الحركة</th>
+                            <th>طريقة الدفع</th>
+                            <th>النوع والاسم</th>
+                            <th>البيان والملاحظات</th>
+                            <th>المبلغ</th>
+                            <th>العمليات والطباعة التفصيلية</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="8" style="text-align:center; color:#64748b; padding:20px;">قم بالبحث في خانة البحث أعلاه لإظهار السندات المطابقة...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 📈 9. التقارير وحفظ البيانات -->
+        <div id="reports" class="tab-panel">
+            <h2>📈 التقارير المالية وكشوفات الحسابات والنسخ الاحتياطي</h2><br>
+            
+            <div class="section-card" style="border: 2px dashed var(--accent);">
+                <h3 style="color:var(--accent);">🛡️ حفظ واسترجاع بيانات المنظومة (Backup & Restore)</h3>
+                <p style="font-size:13px; color:var(--text-main); margin-bottom:15px;">بياناتك محفوظة سحابياً على السيرفر، ويمكنك أيضاً تحميل ملف نسختك الاحتياطية في أي وقت للاحتفاظ به للضرورة.</p>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <button class="btn-submit btn-success" onclick="exportDataBackup()" style="font-size:14px; display:flex; align-items:center; gap:6px;">📥 تحميل نسخة احتياطية (Export Backup)</button>
+                    <label class="btn-submit" style="background:#d97706; cursor:pointer; font-size:14px; display:flex; align-items:center; gap:6px;">📤 استعادة بيانات (Restore Backup)<input type="file" id="importBackupFile" accept=".json" onchange="importDataBackup(event)" style="display:none;"></label>
+                    <button class="btn-submit btn-print" onclick="window.print()">🖨️ طباعة التقرير الشامل</button>
+                </div>
+            </div>
+
+            <div class="section-card" style="background:var(--table-header-bg);">
+                <h3 style="color:var(--accent);">📅 تصفية المعاملات والتقارير بحسب فترة التاريخ (من - إلى)</h3>
+                <div class="form-grid">
+                    <div class="form-group"><label>من تاريخ</label><input type="date" id="rep_date_from" onchange="renderReportsStatements()"></div>
+                    <div class="form-group"><label>إلى تاريخ</label><input type="date" id="rep_date_to" onchange="renderReportsStatements()"></div>
+                    <div style="display:flex; align-items:flex-end;"><button type="button" class="btn-submit" onclick="renderReportsStatements()" style="width:100%;">تطبيق الفلترة وتحديث التقارير 🔄</button></div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card success"><div class="metric-title">إجمالي المبيعات (EGP)</div><div class="metric-value" id="rep_sales_egp">0 ج.م</div></div>
+                <div class="metric-card danger"><div class="metric-title">إجمالي المشتريات (EGP)</div><div class="metric-value" id="rep_pur_egp">0 ج.م</div></div>
+                <div class="metric-card warning"><div class="metric-title">إجمالي المبيعات (SAR)</div><div class="metric-value" id="rep_sales_sar">0 ر.س</div></div>
+                <div class="metric-card"><div class="metric-title">إجمالي المشتريات (SAR)</div><div class="metric-value" id="rep_pur_sar">0 ر.س</div></div>
+            </div>
+
+            <div class="section-card visual-finance-report" id="visualFinanceReport">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; border-bottom:2px solid var(--border-color); padding-bottom:12px; margin-bottom:18px;">
+                    <div><h3 style="margin:0; color:var(--accent);">📊 التقرير البصري للحركة المالية والخزنة</h3><p style="font-size:12px; margin-top:5px; color:var(--text-main);">ملخص المبيعات والمشتريات والقبض والصرف حسب الفترة المحددة.</p></div>
+                    <button type="button" class="btn-print" onclick="printVisualFinanceReport()">🖨️ طباعة التقرير البصري</button>
+                </div>
+                <div id="visualFinanceSummary" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:20px;"></div>
+                <div style="display:grid; grid-template-columns:minmax(280px,1.25fr) minmax(280px,1fr); gap:18px; align-items:start;">
+                    <div style="border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h4 style="margin-bottom:14px; color:var(--text-main);">الحركة اليومية</h4>
+                        <div id="visualFinanceBars"></div>
+                    </div>
+                    <div style="border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h4 style="margin-bottom:14px; color:var(--text-main);">أرصدة الخزائن</h4>
+                        <div id="visualSafeBalances"></div>
+                    </div>
+                </div>
+                <div style="margin-top:18px; border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                    <h4 style="margin-bottom:12px; color:var(--text-main);">توزيع الحركات</h4>
+                    <div id="visualFinanceMix" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3>👤 كشف حساب مفصل للعملاء (شامل الخزنة والمبيعات)</h3>
+                <div class="form-grid" style="margin-bottom:15px;">
+                    <div class="form-group">
+                        <label>اختر العميل</label>
+                        <select id="report_client_select" onchange="renderClientStatementTable()"></select>
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        <button type="button" class="btn-submit" style="background:#0284c7; width:100%;" onclick="printClientStatement()">🖨️ طباعة كشف حساب العميل</button>
+                    </div>
+                </div>
+                <div class="data-table-container">
+                    <table id="reportClientTable">
+                        <thead><tr><th>التاريخ</th><th>نوع المعاملة</th><th>البيان / رقم السند أو الفاتورة</th><th>المبلغ (EGP)</th><th>المبلغ (SAR)</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3>🏢 كشف حساب مفصل للموردين (شامل المشتريات والخزنة)</h3>
+                <div class="form-grid" style="margin-bottom:15px;">
+                    <div class="form-group">
+                        <label>اختر المورد</label>
+                        <select id="report_supplier_select" onchange="renderSupplierStatementTable()"></select>
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        <button type="button" class="btn-submit" style="background:#0284c7; width:100%;" onclick="printSupplierStatement()">🖨️ طباعة كشف حساب المورد</button>
+                    </div>
+                </div>
+                <div class="data-table-container">
+                    <table id="reportSupplierTable">
+                        <thead><tr><th>التاريخ</th><th>نوع المعاملة</th><th>البيان / الملاحظات</th><th>المبلغ (EGP)</th><th>المبلغ (SAR)</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3>💰 كشف حساب البنك وخزائن الشركة</h3>
+                <div class="form-grid" style="margin-bottom:15px;">
+                    <div class="form-group">
+                        <label>اختر الحساب</label>
+                        <select id="report_account_select" onchange="renderAccountStatementTable()">
+                            <option value="BANK">حساب البنك</option>
+                            <option value="SAR_SAFE">خزنة الريال السعودي (SAR)</option>
+                            <option value="EGP_SAFE">خزنة الجنيه المصري (EGP)</option>
+                            <option value="SUPPLIES_SAFE">خزنة التوريدات المستقلة</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        <button type="button" class="btn-submit" style="background:#0284c7; width:100%;" onclick="printAccountStatement()">🖨️ طباعة كشف الحساب المختار</button>
+                    </div>
+                </div>
+                <div class="data-table-container">
+                    <table id="reportAccountTable">
+                        <thead><tr><th>التاريخ</th><th>نوع الحركة</th><th>الخزنة / البنك</th><th>البيان</th><th>المبلغ</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 🔑 10. قسم إدارة الموظفين وتغيير كلمات المرور -->
+        <div id="users_management" class="tab-panel">
+            <h2>🔑 إدارة الموظفين وتغيير كلمات المرور</h2><br>
+            <div class="section-card" style="border-right: 4px solid var(--accent);">
+                <h3>تحديث كلمة مرور الموظف / المشرف</h3>
+                <form onsubmit="updateEmployeePassword(event)" class="form-grid">
+                    <div class="form-group">
+                        <label>اختر الحساب المراد تغيير الباسورد له</label>
+                        <select id="user_target_select" required>
+                            <option value="user1">الموظفين (اسم المستخدم الحالي: 0000)</option>
+                            <option value="user2">المشرف / الأدمن (اسم المستخدم الحالي: 1111)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>كلمة المرور الجديدة</label>
+                        <input type="text" id="user_new_password" required placeholder="أدخل كلمة المرور الجديدة" minlength="3">
+                    </div>
+                    <button type="submit" class="btn-submit btn-success" style="grid-column: 1/-1;">🔑 حفظ وتحديث كلمة المرور فوراً</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 📋 11. تصفية وتوريدات الرحلات (محدثة بالكامل) -->
+        <div id="trip_supplies" class="tab-panel">
+            <h2>📋 تصفية وتوريدات الرحلات</h2><br>
+            <div class="section-card">
+                <h3>تسجيل تصفية المندوب</h3>
+                <form onsubmit="addTripSupplyRecord(event)" class="form-grid trip-supplies-form">
+                    <div class="form-group"><label>اسم البرنامج</label><select id="ts_trip_name" required onchange="updateTripSupplyAgents(); updateAgentPilgrimsDisplay();"><option value="">اختر البرنامج...</option></select></div>
+                    <div class="form-group"><label>المندوب</label><select id="ts_agent_name" required onchange="updateAgentPilgrimsDisplay()"><option value="">اختر المندوب...</option></select></div>
+                    <div class="form-group"><label>العدد</label><input type="number" id="ts_passenger_count" readonly value="0"></div>
+                    <div class="form-group"><label>نوع الغرفة</label><select id="ts_room_type" required onchange="updateAgentPilgrimsDisplay()"><option value="">اختر نوع الغرفة...</option></select></div>
+                    <div class="form-group"><label>سعر الفرد</label><input type="text" id="ts_individual_price" readonly value="0 ج.م"></div>
+                    <div class="form-group"><label>العمولة</label><input type="number" step="0.01" id="ts_agent_commission" value="0" oninput="updateAgentPilgrimsDisplay()" required></div>
+                    <div class="form-group"><label>الإجمالي بعد خصم العمولة</label><input type="text" id="ts_total_amount" readonly value="0 ج.م"></div>
+                    <div class="form-group"><label>التاريخ</label><input type="date" id="ts_date" required></div>
+                    <div class="form-group" style="grid-column:1/-1"><label>البيان</label><input type="text" id="ts_notes" placeholder="تفاصيل التصفية أو التوريد"></div>
+                    <div style="grid-column:1/-1"><button type="submit" class="btn-submit btn-success" style="width:100%">💾 حفظ التصفية</button></div>
+                </form>
+            </div>
+            <div class="section-card"><div class="table-controls"><div style="flex:1;min-width:250px"><label style="font-weight:bold;font-size:13px">🔎 بحث في سجل التوريدات</label><input type="text" id="search_trip_supplies_query" oninput="renderTripSuppliesTable()" placeholder="اسم البرنامج أو المندوب..."></div></div></div>
+            <div class="section-card" style="margin-top:16px">
+                <div class="form-grid" style="align-items:end">
+                    <div class="form-group"><label>التصفية الكلية للرحلات العادية</label><select id="ts_total_trip_select" onchange="renderTripTotalSettlement()"><option value="">اختر الرحلة العادية...</option></select></div>
+                    <div style="display:flex;align-items:end"><button type="button" class="btn-submit" style="width:100%" onclick="renderTripTotalSettlement()">📊 عرض التصفية الكلية</button></div>
+                </div>
+                <div id="tripTotalSettlementCards" style="display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin-top:16px"></div>
+            </div>
+            <div class="data-table-container"><table id="tripSuppliesTable" class="trip-supplies-table"><thead><tr><th>الإجمالي</th><th>العمولة</th><th>سعر الفرد</th><th>نوع الغرفة</th><th>العدد</th><th>المندوب</th><th>اسم البرنامج</th><th>العمليات</th></tr></thead><tbody></tbody></table></div>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDK Modular Setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, doc, deleteDoc, updateDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqu6eB_z-LkIMsTFsySQENxtgt-mkNEWw",
+            authDomain: "new-high-lights.firebaseapp.com",
+            projectId: "new-high-lights",
+            storageBucket: "new-high-lights.firebasestorage.app",
+            messagingSenderId: "982206918586",
+            appId: "1:982206918586:web:d881b0d8d5549b612ab783",
+            measurementId: "G-1FEZF5PT79"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.appData = {
+            hotels: [], hajj: [], trip_data: [], shared_hajj: [], shared_trip_data: [], dealers: [],
+            expenses: [], employees: [],
+            sales_invoices: [], purchase_invoices: [], treasury: [], trip_supplies: []
+        };
+
+        const collections = ['hotels', 'hajj', 'trip_data', 'shared_hajj', 'shared_trip_data', 'dealers', 'expenses', 'employees', 'sales_invoices', 'purchase_invoices', 'treasury', 'trip_supplies'];
+
+        let refreshQueued = false;
+        let loadedCollections = new Set();
+        function queueRefresh() {
+            if(refreshQueued) return;
+            refreshQueued = true;
+            setTimeout(() => { refreshQueued = false; refreshAll(); }, 80);
+        }
+        function setServerStatus(ok, message) {
+            const el=document.getElementById('server_connection_status');
+            if(el){ el.innerText = ok ? '🟢 متصل بالسيرفر' : '🔴 مشكلة اتصال بالسيرفر'; el.style.color = ok ? '#16a34a' : '#dc2626'; }
+            if(message) console.warn(message);
+        }
+        collections.forEach(colName => {
+            onSnapshot(collection(db, colName), (snapshot) => {
+                window.appData[colName] = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+                loadedCollections.add(colName);
+                setServerStatus(true);
+                queueRefresh();
+            }, (error) => { setServerStatus(false, 'Firebase '+colName+' listener error: '+error.message); });
+        });
+
+        window.dbSave = async function(colName, dataObj) {
+            try { const ref=await addDoc(collection(db, colName), dataObj); setServerStatus(true); return ref.id; } catch(e) { setServerStatus(false, e.message); throw e; }
+        };
+        window.dbDelete = async function(colName, docId) {
+            try { await deleteDoc(doc(db, colName, docId)); setServerStatus(true); } catch(e) { setServerStatus(false, e.message); throw e; }
+        };
+        window.dbUpdate = async function(colName, docId, updateData) {
+            try { await updateDoc(doc(db, colName, docId), updateData); setServerStatus(true); } catch(e) { setServerStatus(false, e.message); throw e; }
+        };
+        window.dbSetUserPassword = async function(userId, newPass) {
+            try { await setDoc(doc(db, "users", userId), { password: newPass, updatedAt: new Date().toISOString() }, { merge: true }); } catch(e) { console.error(e); }
+        };
+    </script>
+
+    <script>
+        let selectedPassengerIds = [];
+        let selectedSharedPassengerIds = [];
+        let currentUser = null;
+
+        const defaultUsers = {
+            user1: { username: "0000", password: "0000", role: "employee", name: "الموظفين" },
+            user2: { username: "1111", password: "1111", role: "manager", name: "المشرف" }
+        };
+
+        function getUsersConfig() {
+            const stored = localStorage.getItem('nh_system_users');
+            if (stored) { try { return JSON.parse(stored); } catch(e){} }
+            return defaultUsers;
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.querySelectorAll('input[type="date"]').forEach(el => el.value = today);
+            calculatePricing();
+            calculateSharedPricing();
+            addSalesItemRow();
+            addPurchaseItemRow(); 
+            initTreasuryForm();
+            handleDealerTypeChange();
+            
+            document.getElementById('login_username').value = '';
+            document.getElementById('login_password').value = '';
+
+            if (localStorage.getItem('nh_dark_mode') === 'enabled') {
+                document.body.classList.add('dark-mode');
+                const btn = document.getElementById('darkModeToggle');
+                if (btn) btn.innerText = '☀️ الوضع النهاري';
+            }
+        });
+
+        function refreshAll() {
+            renderHotelBookingsTable();
+            renderHajjTable();
+            renderSharedHajjTable();
+            updateTripSelects();
+            updateSharedTripSelects();
+            updateTripSupplySelects();
+            updateRoomFilterTripSelect();
+            renderTripTables();
+            renderSharedTripTables();
+            renderDealersTable();
+            renderSalesInvoicesTable();
+            renderPurchaseInvoicesTable();
+            renderTreasuryTable();
+            renderTripSuppliesTable();
+            renderReportsStatements();
+            if(document.getElementById('reports').classList.contains('active')) {
+                renderReportsStatements();
+            }
+        }
+
+        function toggleSharedMenu() {
+            const submenu = document.getElementById('shared_submenu');
+            if (submenu) {
+                submenu.classList.toggle('open');
+            }
+        }
+
+        /* دوال تسجيل الدخول */
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('login_username').value.trim();
+            const p = document.getElementById('login_password').value.trim();
+            const users = getUsersConfig();
+            
+            let found = null;
+            for(const key in users) {
+                if(users[key].username === u && users[key].password === p) {
+                    found = users[key];
+                    break;
+                }
+            }
+
+            if(found) {
+                currentUser = found;
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('current_user_display').innerText = found.name;
+                document.getElementById('current_role_display').innerText = found.role === 'manager' ? 'أدمن / مشرف' : 'موظف';
+                alert('تم تسجيل الدخول بنجاح! أهلاً بك ' + found.name);
+                return false;
+            } else {
+                alert('اسم المستخدم أو كلمة المرور غير صحيحة!');
+                return false;
+            }
+        }
+        window.handleLogin = handleLogin;
+        window.handleLogout = handleLogout;
+
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById('loginOverlay').style.display = 'flex';
+            document.getElementById('login_username').value = '';
+            document.getElementById('login_password').value = '';
+        }
+
+        function showTab(tabId, btn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.sidebar button').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            if(btn) btn.classList.add('active');
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('nh_dark_mode', isDark ? 'enabled' : 'disabled');
+            const btn = document.getElementById('darkModeToggle');
+            if (btn) btn.innerText = isDark ? '☀️ الوضع النهاري' : '🌙 الوضع الليلي';
+        }
+
+        async function delRow(col, docId) {
+            if(confirm('هل أنت متأكد من حذف هذا السجل نهائياً؟')) {
+                await window.dbDelete(col, docId);
+            }
+        }
+
+        function calculatePricing() {
+            const sarRate = parseFloat(document.getElementById('hj_sar_rate').value) || 0;
+            const makkahRate = parseFloat(document.getElementById('hj_makkah_rate').value) || 0;
+            const makkahNights = parseFloat(document.getElementById('hj_makkah_nights').value) || 0;
+            const madinahRate = parseFloat(document.getElementById('hj_madinah_rate').value) || 0;
+            const madinahNights = parseFloat(document.getElementById('hj_madinah_nights').value) || 0;
+
+            const visaSar = parseFloat(document.getElementById('hj_visa_sar').value) || 0;
+            const transSar = parseFloat(document.getElementById('hj_trans_sar').value) || 0;
+            const servicesSar = parseFloat(document.getElementById('hj_services_sar').value) || 0;
+
+            const flightEgp = parseFloat(document.getElementById('hj_flight_egp').value) || 0;
+            const barcodeEgp = parseFloat(document.getElementById('hj_barcode_egp').value) || 0;
+            const adminEgp = parseFloat(document.getElementById('hj_admin_egp').value) || 0;
+            const supervisorEgp = parseFloat(document.getElementById('hj_supervisor_egp').value) || 0;
+            const agentCommEgp = parseFloat(document.getElementById('hj_agent_comm_egp').value) || 0;
+            const profitEgp = parseFloat(document.getElementById('hj_profit_egp').value) || 0;
+
+            const fixedEgpTotal = flightEgp + barcodeEgp + adminEgp + supervisorEgp + agentCommEgp + profitEgp;
+            const fixedSarTotal = visaSar + transSar + servicesSar;
+
+            const makkahTotalSar = makkahRate * makkahNights;
+            const madinahTotalSar = madinahRate * madinahNights;
+
+            const quadSar = (makkahTotalSar / 4) + (madinahTotalSar / 4) + fixedSarTotal;
+            const tripleSar = (makkahTotalSar / 3) + (madinahTotalSar / 3) + fixedSarTotal;
+            const doubleSar = (makkahTotalSar / 2) + (madinahTotalSar / 2) + fixedSarTotal;
+
+            const quadEgp = Math.round((quadSar * sarRate) + fixedEgpTotal);
+            const tripleEgp = Math.round((tripleSar * sarRate) + fixedEgpTotal);
+            const doubleEgp = Math.round((doubleSar * sarRate) + fixedEgpTotal);
+
+            const qEl = document.getElementById('calc_quad');
+            const tEl = document.getElementById('calc_triple');
+            const dEl = document.getElementById('calc_double');
+            if(qEl) qEl.innerText = quadEgp.toLocaleString() + ' ج.م';
+            if(tEl) tEl.innerText = tripleEgp.toLocaleString() + ' ج.م';
+            if(dEl) dEl.innerText = doubleEgp.toLocaleString() + ' ج.م';
+
+            return { quadEgp, tripleEgp, doubleEgp };
+        }
+
+        async function addHajjProgram(e) {
+            e.preventDefault();
+            const name = document.getElementById('hj_name').value.trim();
+            const totalPilgrims = parseInt(document.getElementById('hj_total_pilgrims').value) || 50;
+            const sarRate = parseFloat(document.getElementById('hj_sar_rate').value) || 0;
+            const prices = calculatePricing();
+
+            await window.dbSave('hajj', {
+                name,
+                totalPilgrims,
+                sarRate,
+                quadPrice: prices.quadEgp,
+                triplePrice: prices.tripleEgp,
+                doublePrice: prices.doubleEgp
+            });
+
+            e.target.reset();
+            document.getElementById('hj_sar_rate').value = "13.20";
+            document.getElementById('hj_total_pilgrims').value = "50";
+            calculatePricing();
+            alert('تم حفظ وتسجيل برنامج الحج والعمرة بنجاح! ✅');
+        }
+
+        function renderHajjTable() {
+            const data = window.appData.hajj || [];
+            const tbody = document.querySelector('#hajjTable tbody');
+            if(!tbody) return;
+            tbody.innerHTML = data.map((item) => `
+                <tr>
+                    <td><b>${item.name}</b></td>
+                    <td><span style="background:rgba(37,99,235,0.1); color:var(--accent); padding:3px 8px; border-radius:4px; font-weight:bold;">${item.totalPilgrims || 0} معتمر</span></td>
+                    <td>${item.sarRate} ج.م</td>
+                    <td><b style="color:var(--success);">${(item.quadPrice || 0).toLocaleString()} ج.م</b></td>
+                    <td><b style="color:var(--success);">${(item.triplePrice || 0).toLocaleString()} ج.م</b></td>
+                    <td><b style="color:var(--success);">${(item.doublePrice || 0).toLocaleString()} ج.م</b></td>
+                    <td>
+                        <button class="btn-print" onclick="printHajjProgram('${item.docId}')">🖨️ طباعة</button>
+                        <button class="btn-del" onclick="delRow('hajj', '${item.docId}')">حذف</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function printHajjProgram(docId) {
+            const item = (window.appData.hajj || []).find(i => i.docId === docId);
+            if(!item) return;
+            const printWin = window.open('', '', 'width=800,height=700');
+            printWin.document.write(`
+                <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تسعير ${item.name}</title>
+                <style>body{font-family:Tahoma,sans-serif;padding:30px;color:#000;} h2{border-bottom:2px solid #000;padding-bottom:10px;}</style></head>
+                <body>
+                    <h2>🌍 شركة نيو هاي لايتس - تفاصيل تسعير البرنامج</h2>
+                    <p><b>اسم البرنامج:</b> ${item.name}</p>
+                    <p><b>إجمالي المقاعد:</b> ${item.totalPilgrims}</p>
+                    <p><b>سعر صرف الريال:</b> ${item.sarRate} ج.م</p>
+                    <hr>
+                    <p><b>سعر الفرد (رباعي):</b> ${(item.quadPrice || 0).toLocaleString()} ج.م</p>
+                    <p><b>سعر الفرد (ثلاثي):</b> ${(item.triplePrice || 0).toLocaleString()} ج.م</p>
+                    <p><b>سعر الفرد (ثنائي):</b> ${(item.doublePrice || 0).toLocaleString()} ج.م</p>
+                </body></html>
+            `);
+            printWin.document.close();
+            setTimeout(() => printWin.print(), 300);
+        }
+
+        function calculateSharedPricing() {
+            const sarRate = parseFloat(document.getElementById('sh_hj_sar_rate').value) || 0;
+            const makkahRate = parseFloat(document.getElementById('sh_hj_makkah_rate').value) || 0;
+            const makkahNights = parseFloat(document.getElementById('sh_hj_makkah_nights').value) || 0;
+            const madinahRate = parseFloat(document.getElementById('sh_hj_madinah_rate').value) || 0;
+            const madinahNights = parseFloat(document.getElementById('sh_hj_madinah_nights').value) || 0;
+
+            const visaSar = parseFloat(document.getElementById('sh_hj_visa_sar').value) || 0;
+            const transSar = parseFloat(document.getElementById('sh_hj_trans_sar').value) || 0;
+            const servicesSar = parseFloat(document.getElementById('sh_hj_services_sar').value) || 0;
+
+            const flightEgp = parseFloat(document.getElementById('sh_hj_flight_egp').value) || 0;
+            const barcodeEgp = parseFloat(document.getElementById('sh_hj_barcode_egp').value) || 0;
+            const adminEgp = parseFloat(document.getElementById('sh_hj_admin_egp').value) || 0;
+            const supervisorEgp = parseFloat(document.getElementById('sh_hj_supervisor_egp').value) || 0;
+            const agentCommEgp = parseFloat(document.getElementById('sh_hj_agent_comm_egp').value) || 0;
+            const profitEgp = parseFloat(document.getElementById('sh_hj_profit_egp').value) || 0;
+
+            const fixedEgpTotal = flightEgp + barcodeEgp + adminEgp + supervisorEgp + agentCommEgp + profitEgp;
+            const fixedSarTotal = visaSar + transSar + servicesSar;
+
+            const makkahTotalSar = makkahRate * makkahNights;
+            const madinahTotalSar = madinahRate * madinahNights;
+
+            const quadSar = (makkahTotalSar / 4) + (madinahTotalSar / 4) + fixedSarTotal;
+            const tripleSar = (makkahTotalSar / 3) + (madinahTotalSar / 3) + fixedSarTotal;
+            const doubleSar = (makkahTotalSar / 2) + (madinahTotalSar / 2) + fixedSarTotal;
+
+            const quadEgp = Math.round((quadSar * sarRate) + fixedEgpTotal);
+            const tripleEgp = Math.round((tripleSar * sarRate) + fixedEgpTotal);
+            const doubleEgp = Math.round((doubleSar * sarRate) + fixedEgpTotal);
+
+            const qEl = document.getElementById('sh_calc_quad');
+            const tEl = document.getElementById('sh_calc_triple');
+            const dEl = document.getElementById('sh_calc_double');
+            if(qEl) qEl.innerText = quadEgp.toLocaleString() + ' ج.م';
+            if(tEl) tEl.innerText = tripleEgp.toLocaleString() + ' ج.م';
+            if(dEl) dEl.innerText = doubleEgp.toLocaleString() + ' ج.م';
+
+            return { quadEgp, tripleEgp, doubleEgp };
+        }
+
+        async function addSharedHajjProgram(e) {
+            e.preventDefault();
+            const name = document.getElementById('sh_hj_name').value.trim();
+            const totalPilgrims = parseInt(document.getElementById('sh_hj_total_pilgrims').value) || 50;
+            const sarRate = parseFloat(document.getElementById('sh_hj_sar_rate').value) || 0;
+            const prices = calculateSharedPricing();
+
+            await window.dbSave('shared_hajj', {
+                name,
+                totalPilgrims,
+                sarRate,
+                quadPrice: prices.quadEgp,
+                triplePrice: prices.tripleEgp,
+                doublePrice: prices.doubleEgp
+            });
+
+            e.target.reset();
+            document.getElementById('sh_hj_sar_rate').value = "13.20";
+            document.getElementById('sh_hj_total_pilgrims').value = "50";
+            calculateSharedPricing();
+            alert('تم حفظ وتسجيل برنامج الرحلة المشتركة بنجاح! ✅');
+        }
+
+        function renderSharedHajjTable() {
+            const data = window.appData.shared_hajj || [];
+            const tbody = document.querySelector('#sharedHajjTable tbody');
+            if(!tbody) return;
+            tbody.innerHTML = data.map((item) => `
+                <tr>
+                    <td><b>${item.name}</b></td>
+                    <td><span style="background:rgba(37,99,235,0.1); color:var(--accent); padding:3px 8px; border-radius:4px; font-weight:bold;">${item.totalPilgrims || 0} فرد</span></td>
+                    <td>${item.sarRate} ج.م</td>
+                    <td><b style="color:var(--success);">${(item.quadPrice || 0).toLocaleString()} ج.م</b></td>
+                    <td><b style="color:var(--success);">${(item.triplePrice || 0).toLocaleString()} ج.م</b></td>
+                    <td><b style="color:var(--success);">${(item.doublePrice || 0).toLocaleString()} ج.م</b></td>
+                    <td>
+                        <button class="btn-print" onclick="printSharedHajjProgram('${item.docId}')">🖨️ طباعة</button>
+                        <button class="btn-del" onclick="delRow('shared_hajj', '${item.docId}')">حذف</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function printSharedHajjProgram(docId) {
+            const item = (window.appData.shared_hajj || []).find(i => i.docId === docId);
+            if(!item) return;
+            const printWin = window.open('', '', 'width=800,height=700');
+            printWin.document.write(`
+                <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تسعير ${item.name}</title>
+                <style>body{font-family:Tahoma,sans-serif;padding:30px;color:#000;} h2{border-bottom:2px solid #000;padding-bottom:10px;}</style></head>
+                <body>
+                    <h2>🌍 شركة نيو هاي لايتس - تسعير الرحلة المشتركة</h2>
+                    <p><b>اسم الرحلة:</b> ${item.name}</p>
+                    <p><b>إجمالي المقاعد:</b> ${item.totalPilgrims}</p>
+                    <p><b>سعر صرف الريال:</b> ${item.sarRate} ج.م</p>
+                    <hr>
+                    <p><b>سعر الفرد (رباعي):</b> ${(item.quadPrice || 0).toLocaleString()} ج.م</p>
+                    <p><b>سعر الفرد (ثلاثي):</b> ${(item.triplePrice || 0).toLocaleString()} ج.م</p>
+                    <p><b>سعر الفرد (ثنائي):</b> ${(item.doublePrice || 0).toLocaleString()} ج.م</p>
+                </body></html>
+            `);
+            printWin.document.close();
+            setTimeout(() => printWin.print(), 300);
+        }
+
+        async function addHotelBooking(e) {
+            e.preventDefault();
+            const hotelName = document.getElementById('hb_hotel_name').value.trim();
+            const roomType = document.getElementById('hb_room_type').value.trim();
+            const roomCount = parseInt(document.getElementById('hb_room_count').value) || 1;
+            const nightsCount = parseInt(document.getElementById('hb_nights_count').value) || 1;
+            const checkIn = document.getElementById('hb_checkin').value;
+            const checkOut = document.getElementById('hb_checkout').value;
+
+            await window.dbSave('hotels', { hotelName, roomType, roomCount, nightsCount, checkIn, checkOut });
+            e.target.reset();
+            alert('تم حفظ طلب حجز الفندق بنجاح! ✅');
+        }
+
+        function renderHotelBookingsTable() {
+            const data = window.appData.hotels || [];
+            const tbody = document.querySelector('#hotelBookingTable tbody');
+            if(!tbody) return;
+            tbody.innerHTML = data.map((item, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><b>${item.hotelName}</b></td>
+                    <td>${item.roomType || '-'}</td>
+                    <td>${item.roomCount}</td>
+                    <td>${item.nightsCount}</td>
+                    <td>${item.checkIn}</td>
+                    <td>${item.checkOut}</td>
+                    <td><button class="btn-del" onclick="delRow('hotels', '${item.docId}')">حذف</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function updateTripSelects() {
+            const select = document.getElementById('tp_trip_name');
+            if(!select) return;
+            const hajjData = window.appData.hajj || [];
+            let html = '<option value="">اختر الرحلة / البرنامج...</option>';
+            hajjData.forEach(p => {
+                html += `<option value="${p.name}">${p.name}</option>`;
+            });
+            select.innerHTML = html;
+        }
+
+        function updateSharedTripSelects() {
+            const select = document.getElementById('sh_tp_trip_name');
+            if(!select) return;
+            const sharedHajjData = window.appData.shared_hajj || [];
+            let html = '<option value="">اختر الرحلة المشتركة...</option>';
+            sharedHajjData.forEach(p => {
+                html += `<option value="${p.name}">${p.name}</option>`;
+            });
+            select.innerHTML = html;
+        }
+
+        function updateTripSupplySelects() {
+            const select = document.getElementById('ts_trip_name');
+            if(!select) return;
+            const hajjData = window.appData.hajj || [];
+            const sharedHajjData = window.appData.shared_hajj || [];
+            let html = '<option value="">اختر الرحلة...</option>';
+            hajjData.forEach(p => { html += `<option value="${p.name}">حج وعمرة: ${p.name}</option>`; });
+            sharedHajjData.forEach(p => { html += `<option value="${p.name}">رحلة مشتركة: ${p.name}</option>`; });
+            select.innerHTML = html;
+        }
+
+        function updateRoomFilterTripSelect() {
+            const select = document.getElementById('room_filter_trip_select');
+            if(!select) return;
+            const hajjData = window.appData.hajj || [];
+            let html = '<option value="">فلترة الغرف حسب الرحلة...</option>';
+            hajjData.forEach(p => {
+                html += `<option value="${p.name}">${p.name}</option>`;
+            });
+            select.innerHTML = html;
+        }
+
+        function updateRoomPricesDisplay() {
+            const tripName = document.getElementById('tp_trip_name').value;
+            const hajjData = window.appData.hajj || [];
+            const prog = hajjData.find(p => p.name === tripName);
+            if(prog) {
+                document.getElementById('display_price_quad').innerText = (prog.quadPrice || 0).toLocaleString() + ' ج.م';
+                document.getElementById('display_price_triple').innerText = (prog.triplePrice || 0).toLocaleString() + ' ج.م';
+                document.getElementById('display_price_double').innerText = (prog.doublePrice || 0).toLocaleString() + ' ج.م';
+            } else {
+                document.getElementById('display_price_quad').innerText = '0 ج.م';
+                document.getElementById('display_price_triple').innerText = '0 ج.م';
+                document.getElementById('display_price_double').innerText = '0 ج.م';
+            }
+        }
+
+        function updateSharedRoomPricesDisplay() {
+            const tripName = document.getElementById('sh_tp_trip_name').value;
+            const sharedHajjData = window.appData.shared_hajj || [];
+            const prog = sharedHajjData.find(p => p.name === tripName);
+            if(prog) {
+                document.getElementById('sh_display_price_quad').innerText = (prog.quadPrice || 0).toLocaleString() + ' ج.م';
+                document.getElementById('sh_display_price_triple').innerText = (prog.triplePrice || 0).toLocaleString() + ' ج.م';
+                document.getElementById('sh_display_price_double').innerText = (prog.doublePrice || 0).toLocaleString() + ' ج.م';
+            } else {
+                document.getElementById('sh_display_price_quad').innerText = '0 ج.م';
+                document.getElementById('sh_display_price_triple').innerText = '0 ج.م';
+                document.getElementById('sh_display_price_double').innerText = '0 ج.م';
+            }
+        }
+
+        async function addTripPassenger(e) {
+            e.preventDefault();
+            const tripName = document.getElementById('tp_trip_name').value;
+            const travelDate = document.getElementById('tp_travel_date').value;
+            const passengerName = document.getElementById('tp_passenger_name').value.trim();
+            const phone = document.getElementById('tp_passenger_phone').value.trim();
+            const agentName = document.getElementById('tp_agent_name').value.trim();
+            const roomType = document.getElementById('tp_room_type').value;
+
+            if(!tripName) return alert('برجاء اختيار اسم الرحلة / البرنامج!');
+
+            const hajjData = window.appData.hajj || [];
+            const prog = hajjData.find(p => p.name === tripName);
+            const totalAllowed = prog ? (parseInt(prog.totalPilgrims) || 0) : 0;
+            const tripData = window.appData.trip_data || [];
+            const currentRegistered = tripData.filter(p => p.tripName === tripName).length;
+
+            if (totalAllowed > 0 && currentRegistered >= totalAllowed) {
+                return alert(`عذراً، لقد وصلت الرحلة (${tripName}) إلى الحد الأقصى من المقاعد (${totalAllowed}) ولا يمكن تسجيل معتمرين جدد!`);
+            }
+
+            let individualPrice = 0;
+            if(prog) {
+                if(roomType === 'رباعي') individualPrice = prog.quadPrice || 0;
+                else if(roomType === 'ثلاثي') individualPrice = prog.triplePrice || 0;
+                else if(roomType === 'ثنائي') individualPrice = prog.doublePrice || 0;
+                else individualPrice = prog.quadPrice || 0;
+            }
+
+            await window.dbSave('trip_data', {
+                tripName, travelDate, passengerName, phone, agentName, roomType,
+                individualPrice, hotelLocation: '-', roomNumber: '-', selected: false
+            });
+
+            e.target.reset();
+            updateRoomPricesDisplay();
+            alert('تم حفظ وتسجيل بيانات المعتمر بربط سعر الغرفة بنجاح! ✅');
+        }
+
+        async function addSharedTripPassenger(e) {
+            e.preventDefault();
+            const tripName = document.getElementById('sh_tp_trip_name').value;
+            const travelDate = document.getElementById('sh_tp_travel_date').value;
+            const passengerName = document.getElementById('sh_tp_passenger_name').value.trim();
+            const phone = document.getElementById('sh_tp_passenger_phone').value.trim();
+            const agentName = document.getElementById('sh_tp_agent_name').value.trim();
+            const roomType = document.getElementById('sh_tp_room_type').value;
+
+            if(!tripName) return alert('برجاء اختيار اسم الرحلة المشتركة!');
+
+            const sharedHajjData = window.appData.shared_hajj || [];
+            const prog = sharedHajjData.find(p => p.name === tripName);
+            const totalAllowed = prog ? (parseInt(prog.totalPilgrims) || 0) : 0;
+            const sharedTripData = window.appData.shared_trip_data || [];
+            const currentRegistered = sharedTripData.filter(p => p.tripName === tripName).length;
+
+            if (totalAllowed > 0 && currentRegistered >= totalAllowed) {
+                return alert(`عذراً، لقد وصلت الرحلة المشتركة (${tripName}) إلى الحد الأقصى من المقاعد!`);
+            }
+
+            let individualPrice = 0;
+            if(prog) {
+                if(roomType === 'رباعي') individualPrice = prog.quadPrice || 0;
+                else if(roomType === 'ثلاثي') individualPrice = prog.triplePrice || 0;
+                else if(roomType === 'ثنائي') individualPrice = prog.doublePrice || 0;
+                else individualPrice = prog.quadPrice || 0;
+            }
+
+            await window.dbSave('shared_trip_data', {
+                tripName, travelDate, passengerName, phone, agentName, roomType,
+                individualPrice, hotelLocation: '-', roomNumber: '-', selected: false
+            });
+
+            e.target.reset();
+            updateSharedRoomPricesDisplay();
+            alert('تم حفظ وتسجيل المسافر بالرحلة المشتركة بنجاح! ✅');
+        }
+
+        /* ميزات التسكين التلقائي، إلغاء التسكين، وتحديد المعتمرين والطباعة */
+        function toggleSelectAllPassengers() {
+            const tripData = window.appData.trip_data || [];
+            const allSelected = tripData.every(p => p.selected);
+            tripData.forEach(async p => {
+                await window.dbUpdate('trip_data', p.docId, { selected: !allSelected });
+            });
+        }
+
+        function toggleSelectAllSharedPassengers() {
+            const sharedTripData = window.appData.shared_trip_data || [];
+            const allSelected = sharedTripData.every(p => p.selected);
+            sharedTripData.forEach(async p => {
+                await window.dbUpdate('shared_trip_data', p.docId, { selected: !allSelected });
+            });
+        }
+
+        async function togglePassengerSelect(docId, currentStatus, isShared = false) {
+            const col = isShared ? 'shared_trip_data' : 'trip_data';
+            await window.dbUpdate(col, docId, { selected: !currentStatus });
+        }
+
+        async function autoAssignRoomsModal() {
+            const tripData = window.appData.trip_data || [];
+            if(tripData.length === 0) return alert('لا توجد معتمرين مسجلين للتسكين!');
+            
+            const capacities = { 'رباعي': 4, 'ثلاثي': 3, 'ثنائي': 2, 'خماسي': 5 };
+            const groups = {};
+            tripData.forEach(p => {
+                const rt = p.roomType || 'رباعي';
+                if(!groups[rt]) groups[rt] = [];
+                groups[rt].push(p);
+            });
+
+            let completedQuad = 0, completedTriple = 0, completedDouble = 0, completedQuintuple = 0;
+
+            for(const [rt, list] of Object.entries(groups)) {
+                const maxCap = capacities[rt] || 4;
+                let roomIndex = 1;
+                for(let i = 0; i < list.length; i += maxCap) {
+                    const chunk = list.slice(i, i + maxCap);
+                    const isFull = chunk.length === maxCap;
+                    if(isFull) {
+                        if(rt === 'رباعي') completedQuad++;
+                        else if(rt === 'ثلاثي') completedTriple++;
+                        else if(rt === 'ثنائي') completedDouble++;
+                        else if(rt === 'خماسي') completedQuintuple++;
+                    }
+                    for(let j = 0; j < chunk.length; j++) {
+                        const pass = chunk[j];
+                        await window.dbUpdate('trip_data', pass.docId, {
+                            roomNumber: `${rt} - غرفة رقم ${roomIndex} (${chunk.length}/${maxCap})`
+                        });
+                    }
+                    roomIndex++;
+                }
+            }
+
+            document.getElementById('count_completed_quad').innerText = completedQuad;
+            document.getElementById('count_completed_triple').innerText = completedTriple;
+            document.getElementById('count_completed_double').innerText = completedDouble;
+            document.getElementById('count_completed_quintuple').innerText = completedQuintuple;
+
+            alert('تمت عملية التسكين التلقائي بنجاح مع الالتزام بالحد الأقصى للغرف! ✅');
+        }
+
+        async function autoAssignSharedRoomsModal() {
+            const sharedTripData = window.appData.shared_trip_data || [];
+            if(sharedTripData.length === 0) return alert('لا توجد مسجلين بالرحلات المشتركة للتسكين!');
+            
+            const capacities = { 'رباعي': 4, 'ثلاثي': 3, 'ثنائي': 2, 'خماسي': 5 };
+            const groups = {};
+            sharedTripData.forEach(p => {
+                const rt = p.roomType || 'رباعي';
+                if(!groups[rt]) groups[rt] = [];
+                groups[rt].push(p);
+            });
+
+            let completedQuad = 0, completedTriple = 0, completedDouble = 0, completedQuintuple = 0;
+
+            for(const [rt, list] of Object.entries(groups)) {
+                const maxCap = capacities[rt] || 4;
+                let roomIndex = 1;
+                for(let i = 0; i < list.length; i += maxCap) {
+                    const chunk = list.slice(i, i + maxCap);
+                    const isFull = chunk.length === maxCap;
+                    if(isFull) {
+                        if(rt === 'رباعي') completedQuad++;
+                        else if(rt === 'ثلاثي') completedTriple++;
+                        else if(rt === 'ثنائي') completedDouble++;
+                        else if(rt === 'خماسي') completedQuintuple++;
+                    }
+                    for(let j = 0; j < chunk.length; j++) {
+                        const pass = chunk[j];
+                        await window.dbUpdate('shared_trip_data', pass.docId, {
+                            roomNumber: `${rt} - غرفة رقم ${roomIndex} (${chunk.length}/${maxCap})`
+                        });
+                    }
+                    roomIndex++;
+                }
+            }
+
+            document.getElementById('sh_count_completed_quad').innerText = completedQuad;
+            document.getElementById('sh_count_completed_triple').innerText = completedTriple;
+            document.getElementById('sh_count_completed_double').innerText = completedDouble;
+            document.getElementById('sh_count_completed_quintuple').innerText = completedQuintuple;
+
+            alert('تمت عملية التسكين التلقائي للرحلات المشتركة بنجاح! ✅');
+        }
+
+        async function cancelAccommodationModal() {
+            if(confirm('هل تريد إلغاء التسكين وتفريغ أرقام الغرف لكل المعتمرين؟')) {
+                const tripData = window.appData.trip_data || [];
+                for(const p of tripData) {
+                    await window.dbUpdate('trip_data', p.docId, { roomNumber: '-' });
+                }
+                alert('تم إلغاء التسكين بنجاح! 🔄');
+            }
+        }
+
+        async function cancelSharedAccommodationModal() {
+            if(confirm('هل تريد إلغاء التسكين وتفريغ أرقام الغرف لكل مسافري الرحلات المشتركة؟')) {
+                const sharedTripData = window.appData.shared_trip_data || [];
+                for(const p of sharedTripData) {
+                    await window.dbUpdate('shared_trip_data', p.docId, { roomNumber: '-' });
+                }
+                alert('تم إلغاء التسكين المشترك بنجاح! 🔄');
+            }
+        }
+
+        function printRoomsReport() {
+            const selectedTrip = (document.getElementById('room_filter_trip_select') || {}).value || '';
+            const data = window.appData.trip_data || [];
+            const tripPassengers = selectedTrip ? data.filter(item => item.tripName === selectedTrip) : data;
+
+            if (tripPassengers.length === 0) return alert('لا توجد بيانات لهذه الرحلة!');
+            if (!selectedTrip) return alert('برجاء اختيار الرحلة أولاً لطباعة كشف التسكين!');
+
+            const roomsGrouped = {};
+            tripPassengers.forEach(p => {
+                const assignedRoom = p.roomNumber && p.roomNumber !== '-' ? p.roomNumber : '';
+                if (assignedRoom) {
+                    const roomKey = `غرفة ${assignedRoom}`;
+                    if (!roomsGrouped[roomKey]) {
+                        roomsGrouped[roomKey] = {
+                            roomNum: assignedRoom,
+                            roomType: p.roomType || 'رباعي',
+                            guests: []
+                        };
+                    }
+                    roomsGrouped[roomKey].guests.push(p);
+                }
+            });
+
+            if (Object.keys(roomsGrouped).length === 0) {
+                return alert('لا يوجد معتمرون تم تسكينهم لهذه الرحلة بعد!');
+            }
+
+            let roomsCardsHtml = '';
+            Object.keys(roomsGrouped).forEach(roomKey => {
+                const room = roomsGrouped[roomKey];
+                let capacity = 4;
+                if (room.roomType.includes('ثنائي')) capacity = 2;
+                else if (room.roomType.includes('ثلاثي')) capacity = 3;
+                else if (room.roomType.includes('رباعي')) capacity = 4;
+                else if (room.roomType.includes('خماسي')) capacity = 5;
+
+                let guestsRowsHtml = '';
+                for (let i = 0; i < capacity; i++) {
+                    const guest = room.guests[i];
+                    guestsRowsHtml += guest ? `
+                        <tr>
+                            <td style="width:30px; text-align:center; font-weight:bold; background:#f1f5f9; border:1px solid #cbd5e1;">${i + 1}</td>
+                            <td style="padding:6px 10px; border:1px solid #cbd5e1; font-weight:bold; color:#0f172a;">${guest.passengerName}</td>
+                        </tr>
+                    ` : `
+                        <tr>
+                            <td style="width:30px; text-align:center; font-weight:bold; background:#f1f5f9; border:1px solid #cbd5e1; color:#94a3b8;">${i + 1}</td>
+                            <td style="padding:6px 10px; border:1px solid #cbd5e1; color:#cbd5e1; font-style:italic;">--- مكان شاغر ---</td>
+                        </tr>
+                    `;
+                }
+
+                roomsCardsHtml += `
+                    <div style="background:#ffffff; border:1px solid #000; overflow:hidden; page-break-inside:avoid; margin-bottom:15px; font-family:'Segoe UI', Tahoma, sans-serif;">
+                        <div style="background:#fed7aa; color:#0f172a; padding:6px 10px; font-weight:bold; font-size:14px; text-align:center; border-bottom:1px solid #000;">
+                            غرفة ${room.roomType} (${room.roomNum})
+                        </div>
+                        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                            ${guestsRowsHtml}
+                        </table>
+                    </div>
+                `;
+            });
+
+            const travelDate = (tripPassengers[0] && tripPassengers[0].travelDate) || '-';
+            const printWindow = window.open('', '', 'width=900,height=800');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="ar" dir="rtl">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>كشف تسكين - نيو هاي لايتس - ${selectedTrip}</title>
+                    <style>
+                        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; margin:0; padding:0; }
+                        body { background:#ffffff; color:#000; padding:20px; }
+                        .header { text-align:center; margin-bottom:20px; padding-bottom:10px; border-bottom:2px solid #000; }
+                        .header h2 { font-size:20px; color:#000; font-weight:bold; }
+                        .rooms-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:15px; }
+                        @media print { body { padding:0; } .rooms-grid { grid-template-columns:repeat(2, 1fr); } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>🌍 نيو هاي لايتس (New Highlights)</h2>
+                        <p style="font-size:14px; font-weight:bold; margin-top:5px;">كشف تسكين رحلة ${travelDate} - (${selectedTrip})</p>
+                    </div>
+                    <div class="rooms-grid">${roomsCardsHtml}</div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            setTimeout(() => { printWindow.print(); }, 300);
+        }
+
+        function renderTripTables() {
+            const tripData = window.appData.trip_data || [];
+            const hajjData = window.appData.hajj || [];
+            const container = document.getElementById('trips_tables_container');
+            const searchQuery = ((document.getElementById('search_trip_query') || {}).value || '').toLowerCase().trim();
+            const filterTrip = (document.getElementById('room_filter_trip_select') || {}).value || '';
+            if(!container) return;
+
+            const tripsMap = {};
+            tripData.forEach(item => {
+                const tName = item.tripName || 'رحلة عامة';
+                if(!tripsMap[tName]) tripsMap[tName] = [];
+                tripsMap[tName].push(item);
+            });
+
+            hajjData.forEach(prog => {
+                if(!tripsMap[prog.name]) tripsMap[prog.name] = [];
+            });
+
+            let html = '';
+            for (const [tripName, passengers] of Object.entries(tripsMap)) {
+                if(filterTrip && tripName !== filterTrip) continue;
+                if(searchQuery && !tripName.toLowerCase().includes(searchQuery) && !passengers.some(p => p.passengerName.toLowerCase().includes(searchQuery))) {
+                    continue;
+                }
+
+                const prog = hajjData.find(p => p.name === tripName);
+                const totalPilgrims = prog ? (parseInt(prog.totalPilgrims) || 0) : passengers.length;
+                
+                html += `
+                    <div class="section-card" style="padding:0; overflow:hidden; margin-bottom:25px;">
+                        <div class="trip-header-card">
+                            <div>
+                                <h3 style="margin:0; color:white; border:none; padding:0; font-size:16px;">🧳 رحلة: ${tripName}</h3>
+                                <span style="font-size:12px; color:#38bdf8; font-weight:bold;">إجمالي المقاعد: ${totalPilgrims} | المسجلين: ${passengers.length}</span>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>تحديد</th>
+                                        <th>م</th>
+                                        <th>اسم المعتمر</th>
+                                        <th>التليفون</th>
+                                        <th>المندوب</th>
+                                        <th>نوع الغرفة</th>
+                                        <th>رقم وتسكين الغرفة</th>
+                                        <th>حالة التسكين</th>
+                                        <th>سعر الفرد (البرنامج)</th>
+                                        <th>تاريخ السفر</th>
+                                        <th>العمليات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+
+                if (passengers.length === 0) {
+                    html += `<tr><td colspan="11" style="text-align:center; color:#64748b; padding:20px;">لا يوجد معتمرين مسجلين لهذه الرحلة.</td></tr>`;
+                } else {
+                    passengers.forEach((p, index) => {
+                        const isAccommodated = p.roomNumber && p.roomNumber !== '-';
+                        html += `
+                            <tr>
+                                <td><input type="checkbox" ${p.selected ? 'checked' : ''} onchange="togglePassengerSelect('${p.docId}', ${p.selected || false}, false)"></td>
+                                <td>${index + 1}</td>
+                                <td><b>${p.passengerName}</b></td>
+                                <td>${p.phone}</td>
+                                <td><span style="color:var(--accent); font-weight:bold;">${p.agentName}</span></td>
+                                <td><span style="background:rgba(37,99,235,0.08); padding:3px 6px; border-radius:4px; font-weight:bold;">${p.roomType}</span></td>
+                                <td><b style="color:${isAccommodated ? 'var(--success)' : 'var(--warning)'};">${p.roomNumber || '-'}</b></td>
+                                <td><b style="color:${isAccommodated ? 'var(--success)' : 'var(--danger)'};">${isAccommodated ? 'تم التسكين' : 'لم يسكن'}</b></td>
+                                <td><b style="color:var(--success);">${(p.individualPrice || 0).toLocaleString()} ج.م</b></td>
+                                <td>${p.travelDate || '-'}</td>
+                                <td><button class="btn-del" onclick="delRow('trip_data', '${p.docId}')">حذف</button></td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html || '<div class="section-card" style="text-align:center;">لا توجد رحلات مسجلة.</div>';
+        }
+
+        function printSharedRoomsReport() { const selectedTrip=((document.getElementById('shared_room_filter_trip_select')||{}).value||''); if(!selectedTrip)return alert('برجاء اختيار الرحلة المشتركة أولاً لطباعة كشف التسكين!'); const ps=(window.appData.shared_trip_data||[]).filter(p=>p.tripName===selectedTrip),rooms={}; ps.forEach(p=>{const r=p.roomNumber&&p.roomNumber!=='-'?p.roomNumber:'';if(!r)return;if(!rooms[r])rooms[r]={room:r,type:p.roomType||'رباعي',guests:[]};rooms[r].guests.push(p)}); if(!Object.keys(rooms).length)return alert('لا يوجد مسافرون تم تسكينهم لهذه الرحلة المشتركة بعد!'); let cards='';Object.values(rooms).forEach(r=>{let cap=r.type.includes('ثنائي')?2:r.type.includes('ثلاثي')?3:r.type.includes('خماسي')?5:4,rows='';for(let i=0;i<cap;i++)rows+=r.guests[i]?`<tr><td>${i+1}</td><td><b>${r.guests[i].passengerName}</b></td></tr>`:`<tr><td>${i+1}</td><td class="empty">--- مكان شاغر ---</td></tr>`;cards+=`<section class="room"><h3>غرفة ${r.type} (${r.room})</h3><table>${rows}</table></section>`});const date=(ps[0]&&ps[0].travelDate)||'-',w=window.open('','','width=900,height=800');w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف تسكين الرحلة المشتركة</title><style>body{font-family:Tahoma;padding:20px;color:#111}.header{text-align:center;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:20px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px}.room{border:1px solid #111;page-break-inside:avoid;margin-bottom:15px}.room h3{text-align:center;background:#fed7aa;margin:0;padding:8px}.room table{width:100%;border-collapse:collapse}.room td{border:1px solid #cbd5e1;padding:7px}.room td:first-child{width:35px;text-align:center;background:#f1f5f9}.empty{color:#94a3b8;font-style:italic}</style></head><body><div class="header"><h2>🌍 نيو هاي لايتس</h2><b>كشف تسكين الرحلة المشتركة: ${date} - (${selectedTrip})</b></div><div class="grid">${cards}</div></body></html>`);w.document.close();setTimeout(()=>w.print(),300); }
+
+        function updateSharedRoomFilterTripSelect() {
+            const select = document.getElementById('shared_room_filter_trip_select');
+            if(!select) return;
+            const current = select.value || '';
+            const data = window.appData.shared_trip_data || [];
+            const programs = window.appData.shared_hajj || [];
+            const names = [...new Set([...programs.map(p => p.name), ...data.map(p => p.tripName)].filter(Boolean))];
+            select.innerHTML = '<option value="">فلترة الغرف حسب الرحلة المشتركة...</option>' + names.map(name => `<option value="${name}">${name}</option>`).join('');
+            select.value = names.includes(current) ? current : '';
+        }
+
+        function renderSharedTripTables() {
+            const sharedTripData = window.appData.shared_trip_data || [];
+            const container = document.getElementById('shared_trips_tables_container');
+            if(!container) return;
+            updateSharedRoomFilterTripSelect();
+            const searchQuery = ((document.getElementById('search_shared_trip_query')||{}).value||'').toLowerCase().trim();
+            const sharedFilter = ((document.getElementById('shared_room_filter_trip_select')||{}).value||'');
+            if(!container) return;
+
+            const filtered = sharedTripData.filter(p => {
+                if(sharedFilter && p.tripName!==sharedFilter) return false; if(!searchQuery) return true;
+                return (p.tripName || '').toLowerCase().includes(searchQuery) || (p.passengerName || '').toLowerCase().includes(searchQuery);
+            });
+
+            let html = `
+                <div class="section-card" style="padding:0; overflow:hidden; margin-bottom:25px;">
+                    <div class="trip-header-card">
+                        <div><h3 style="margin:0; color:white;">🤝 مسافري الرحلات المشتركة وتسكين الغرف</h3></div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>تحديد</th>
+                                <th>م</th>
+                                <th>اسم الرحلة</th>
+                                <th>اسم المسافر</th>
+                                <th>التليفون</th>
+                                <th>المندوب</th>
+                                <th>نوع الغرفة</th>
+                                <th>تسكين الغرفة</th>
+                                <th>حالة التسكين</th>
+                                <th>سعر الفرد</th>
+                                <th>العمليات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            if(filtered.length === 0) {
+                html += `<tr><td colspan="11" style="text-align:center; padding:20px;">لا توجد مسجلين بالرحلات المشتركة.</td></tr>`;
+            } else {
+                filtered.forEach((p, idx) => {
+                    const isAccommodated = p.roomNumber && p.roomNumber !== '-';
+                    html += `
+                        <tr>
+                            <td><input type="checkbox" ${p.selected ? 'checked' : ''} onchange="togglePassengerSelect('${p.docId}', ${p.selected || false}, true)"></td>
+                            <td>${idx + 1}</td>
+                            <td><b>${p.tripName}</b></td>
+                            <td>${p.passengerName}</td>
+                            <td>${p.phone}</td>
+                            <td><span style="color:var(--accent); font-weight:bold;">${p.agentName}</span></td>
+                            <td>${p.roomType}</td>
+                            <td><b style="color:${isAccommodated ? 'var(--success)' : 'var(--warning)'};">${p.roomNumber || '-'}</b></td>
+                            <td><b style="color:${isAccommodated ? 'var(--success)' : 'var(--danger)'};">${isAccommodated ? 'تم التسكين' : 'لم يسكن'}</b></td>
+                            <td><b style="color:var(--success);">${(p.individualPrice || 0).toLocaleString()} ج.م</b></td>
+                            <td><button class="btn-del" onclick="delRow('shared_trip_data', '${p.docId}')">حذف</button></td>
+                        </tr>
+                    `;
+                });
+            }
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
+        }
+
+        /* 📋 تصفية وتوريدات الرحلات وتجميع العدد والسعر مطروحاً منه العمولة */
+        function updateTripSupplyAgents() {
+            const tripName = document.getElementById('ts_trip_name').value.replace(/^(حج وعمرة: |رحلة مشتركة: )/, '');
+            const agentSelect = document.getElementById('ts_agent_name');
+            if(!agentSelect) return;
+
+            const tripData = window.appData.trip_data || [];
+            const sharedTripData = window.appData.shared_trip_data || [];
+            const allPassengers = [...tripData, ...sharedTripData].filter(p => p.tripName === tripName);
+
+            const agentsSet = new Set();
+            allPassengers.forEach(p => {
+                if(p.agentName && p.agentName.trim() !== '') {
+                    agentsSet.add(p.agentName.trim());
+                }
+            });
+
+            let html = '<option value="">اختر المندوب...</option>';
+            agentsSet.forEach(agent => {
+                html += `<option value="${agent}">${agent}</option>`;
+            });
+            agentSelect.innerHTML = html;
+            updateAgentPilgrimsDisplay();
+        }
+
+        function updateAgentPilgrimsDisplay() {
+            const rawTrip = document.getElementById('ts_trip_name').value || '';
+            const tripName = rawTrip.replace(/^(حج وعمرة: |رحلة مشتركة: )/, '');
+            const agentName = document.getElementById('ts_agent_name').value || '';
+            const roomSelect = document.getElementById('ts_room_type');
+            const passengers = [...(window.appData.trip_data||[]), ...(window.appData.shared_trip_data||[])].filter(p=>p.tripName===tripName && p.agentName===agentName);
+            const prog = (window.appData.hajj||[]).find(p=>p.name===tripName) || (window.appData.shared_hajj||[]).find(p=>p.name===tripName);
+            const prices = { 'رباعي':prog?.quadPrice||0, 'ثلاثي':prog?.triplePrice||0, 'ثنائي':prog?.doublePrice||0, 'خماسي':prog?.quadPrice||0 };
+            const counts = {}; passengers.forEach(p=>{const rt=p.roomType||'رباعي';counts[rt]=(counts[rt]||0)+1;});
+            if(roomSelect){ const current=roomSelect.value; roomSelect.innerHTML='<option value="">اختر نوع الغرفة...</option>'+Object.keys(counts).map(rt=>`<option value="${rt}">${rt}</option>`).join(''); roomSelect.value=counts[current]?current:(Object.keys(counts)[0]||''); }
+            const roomType=roomSelect?.value||''; const count=counts[roomType]||0; const price=prices[roomType]||0; const commission=parseFloat(document.getElementById('ts_agent_commission').value)||0; const gross=count*price; const total=gross-commission;
+            document.getElementById('ts_passenger_count').value=count; document.getElementById('ts_individual_price').value=price.toLocaleString()+' ج.م';
+            document.getElementById('ts_total_amount').value = total.toLocaleString() + ' ج.م';
+            if(!tripName||!agentName) return;
+        }
+
+        async function addTripSupplyRecord(e) {
+            e.preventDefault();
+            const rawTrip=document.getElementById('ts_trip_name').value, tripName=rawTrip.replace(/^(حج وعمرة: |رحلة مشتركة: )/,'');
+            const agentName=document.getElementById('ts_agent_name').value, roomType=document.getElementById('ts_room_type').value;
+            const count=parseInt(document.getElementById('ts_passenger_count').value)||0, price=parseFloat((document.getElementById('ts_individual_price').value||'0').replace(/,/g,''))||0;
+            const commission=parseFloat(document.getElementById('ts_agent_commission').value)||0, total=(count*price)-commission;
+            const date=document.getElementById('ts_date').value, notes=document.getElementById('ts_notes').value.trim();
+            await window.dbSave('trip_supplies',{tripName,agentName,roomType,passengerCount:count,individualPrice:price,amount:total,grossAmount:count*price,commission,date,notes});
+            e.target.reset();document.getElementById('ts_date').value=new Date().toISOString().split('T')[0];document.getElementById('ts_room_type').innerHTML='<option value="">اختر نوع الغرفة...</option>';updateTripSupplySelects();alert('تم حفظ التصفية بالمزامنة مع الرحلة والمندوب والغرفة والسعر ✅');
+        }
+
+        function renderTripSuppliesTable() {
+            const data=window.appData.trip_supplies||[], tbody=document.querySelector('#tripSuppliesTable tbody'); if(!tbody)return;
+            const q=((document.getElementById('search_trip_supplies_query')||{}).value||'').toLowerCase().trim(); const filtered=data.filter(x=>!q||(x.tripName||'').toLowerCase().includes(q)||(x.agentName||'').toLowerCase().includes(q));
+            tbody.innerHTML=filtered.map(item=>`<tr><td><b style="color:var(--success)">${(item.amount||0).toLocaleString()} ج.م</b></td><td><b style="color:var(--danger)">${(item.commission||0).toLocaleString()} ج.م</b></td><td>${(item.individualPrice||0).toLocaleString()} ج.م</td><td>${item.roomType||'-'}</td><td>${item.passengerCount||0}</td><td><b>${item.agentName||'-'}</b></td><td><b>${item.tripName||'-'}</b></td><td><button class="btn-print" onclick="printSavedTripSupply('${item.docId}')">🖨️</button> <button class="btn-del" onclick="delRow('trip_supplies','${item.docId}')">حذف</button></td></tr>`).join('')||'<tr><td colspan="8" style="text-align:center;padding:20px">لا توجد تصفيات مسجلة.</td></tr>';
+        }
+
+        function printSavedTripSupply(docId){ const item=(window.appData.trip_supplies||[]).find(x=>x.docId===docId); if(!item)return; const w=window.open('','','width=850,height=700'); w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:25px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:20px}td,th{border:1px solid #555;padding:10px}th{background:#f1f5f9}</style></head><body><h2>🌍 كشف تصفية وتوريد رحلة</h2><table><tr><th>اسم البرنامج</th><td>${item.tripName}</td></tr><tr><th>المندوب</th><td>${item.agentName}</td></tr><tr><th>نوع الغرفة</th><td>${item.roomType||'-'}</td></tr><tr><th>العدد</th><td>${item.passengerCount||0}</td></tr><tr><th>سعر الفرد</th><td>${(item.individualPrice||0).toLocaleString()} ج.م</td></tr><tr><th>العمولة</th><td>${(item.commission||0).toLocaleString()} ج.م</td></tr><tr><th>الإجمالي</th><td>${(item.amount||0).toLocaleString()} ج.م</td></tr></table></body></html>`);w.document.close();setTimeout(()=>w.print(),300); }
+
+        function printAgentSettlementReport() {
+            const tripName = document.getElementById('ts_trip_name').value;
+            const agentName = document.getElementById('ts_agent_name').value;
+            if(!tripName || !agentName) return alert('برجاء اختيار الرحلة والمندوب لطباعة كشف الحساب والتسوية!');
+
+            const printWin = window.open('', '', 'width=800,height=700');
+            printWin.document.write(`
+                <!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب وتسوية المندوب</title>
+                <style>body{font-family:Tahoma,sans-serif;padding:30px;color:#000;} h2{border-bottom:2px solid #000;padding-bottom:10px;}</style></head>
+                <body>
+                    <h2>🌍 شركة نيو هاي لايتس - كشف حساب وتسوية المندوب</h2>
+                    <p><b>اسم الرحلة:</b> ${tripName}</p>
+                    <p><b>اسم المندوب:</b> ${agentName}</p>
+                    <hr>
+                    <div id="print_content">${document.getElementById('agent_pilgrims_container').innerHTML}</div>
+                </body></html>
+            `);
+            printWin.document.close();
+            setTimeout(() => printWin.print(), 300);
+        }
+
+        /* دوال المتعاملين، الفواتير، الخزنة، والتقارير الاحتياطية */
+        function handleDealerTypeChange() {
+            const t = document.getElementById('dlr_type').value;
+            document.querySelectorAll('.client-supplier-field').forEach(el => {
+                if(t === 'المصروفات' || t === 'الاستحقاقات') {
+                    el.classList.add('hidden');
+                } else {
+                    el.classList.remove('hidden');
+                }
+            });
+        }
+
+        async function addDealer(e) {
+            e.preventDefault();
+            const type = document.getElementById('dlr_type').value;
+            const name = document.getElementById('dlr_name').value.trim();
+            const businessField = document.getElementById('dlr_business_field')?.value || '';
+            const phone = document.getElementById('dlr_phone')?.value || '';
+
+            await window.dbSave('dealers', { type, name, businessField, phone });
+            updateTreasuryPartyTypes();
+            populatePartyNames();
+            e.target.reset();
+            handleDealerTypeChange();
+            alert('تم حفظ المتعامل بنجاح! ✅');
+        }
+
+        function renderDealersTable() {
+            const data = window.appData.dealers || [];
+            const tbody = document.querySelector('#dealersTable tbody');
+            if(!tbody) return;
+            tbody.innerHTML = data.map((item, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><b>${item.type}</b></td>
+                    <td>${item.name}</td>
+                    <td>${item.businessField || '-'}</td>
+                    <td>${item.phone || '-'}</td>
+                    <td><button class="btn-del" onclick="delRow('dealers', '${item.docId}')">حذف</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function addSalesItemRow() {
+            const tbody = document.getElementById('salesItemsTbody');
+            if(!tbody) return;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><select class="si_desc" required><option value="">اختر البيان...</option><option>تنفيذ شركة</option><option>مصروفات دورة نقل</option><option>باركود</option><option>طيران</option><option>فندق مكة</option><option>فندق المدينة</option><option>بدل إشراف</option><option>تأشيرة</option><option value="أخرى">أخرى</option></select></td>
+                <td><select class="si_age"><option value="بالغ">بالغ</option><option value="طفل">طفل</option><option value="رضيع">رضيع</option></select></td>
+                <td><input type="number" class="si_qty" min="1" value="1" oninput="calcSalesTotals()" required></td>
+                <td><select class="si_curr" onchange="calcSalesTotals()"><option value="EGP">EGP</option><option value="SAR">SAR</option></select></td>
+                <td><input type="number" step="0.01" class="si_price" value="0" oninput="calcSalesTotals()" required></td>
+                <td><input type="number" step="0.01" class="si_rate" value="13.20" oninput="calcSalesTotals()"></td>
+                <td><b class="si_subtotal" style="color:var(--success);">0</b></td>
+                <td><button type="button" class="btn-del" onclick="this.closest('tr').remove(); calcSalesTotals();">حذف</button></td>
+            `;
+            tbody.appendChild(tr);
+            calcSalesTotals();
+        }
+
+        function calcSalesTotals() {
+            let totalEgp = 0, totalSar = 0;
+            document.querySelectorAll('#salesItemsTbody tr').forEach(tr => {
+                const qty = parseFloat(tr.querySelector('.si_qty').value) || 0;
+                const price = parseFloat(tr.querySelector('.si_price').value) || 0;
+                const curr = tr.querySelector('.si_curr').value;
+                const rate = parseFloat(tr.querySelector('.si_rate').value) || 13.20;
+                const sub = qty * price;
+                tr.querySelector('.si_subtotal').innerText = sub.toLocaleString();
+                if(curr === 'EGP') totalEgp += sub;
+                else {
+                    totalSar += sub;
+                    totalEgp += (sub * rate);
+                }
+            });
+            document.getElementById('sales_total_egp').innerText = totalEgp.toLocaleString() + ' ج.م';
+            document.getElementById('sales_total_sar').innerText = totalSar.toLocaleString() + ' ر.س';
+        }
+
+        function toggleSalesDueDateGroup() {
+            const type = document.getElementById('inv_sale_payment_type').value;
+            const group = document.getElementById('salesDueDateGroup');
+            if(type === 'آجل') group.classList.remove('hidden');
+            else group.classList.add('hidden');
+        }
+
+        async function addSalesInvoice(e) {
+            e.preventDefault();
+            const client = document.getElementById('inv_sale_client').value;
+            const groupNo = document.getElementById('inv_sale_group').value.trim();
+            const paymentType = document.getElementById('inv_sale_payment_type').value;
+            const dueDate = document.getElementById('inv_sale_due_date').value;
+
+            let items = [];
+            let totalEgp = 0, totalSar = 0;
+            document.querySelectorAll('#salesItemsTbody tr').forEach(tr => {
+                const desc = tr.querySelector('.si_desc').value;
+                const age = tr.querySelector('.si_age').value;
+                const qty = parseFloat(tr.querySelector('.si_qty').value) || 0;
+                const curr = tr.querySelector('.si_curr').value;
+                const price = parseFloat(tr.querySelector('.si_price').value) || 0;
+                const sub = qty * price;
+                items.push({ desc, age, qty, curr, price, sub });
+                if(curr === 'EGP') totalEgp += sub;
+                else {
+                    totalSar += sub;
+                    totalEgp += sub * 13.20;
+                }
+            });
+
+            const invoiceNo = 'INV-' + Math.floor(100000 + Math.random() * 900000);
+            const date = new Date().toISOString().split('T')[0];
+
+            await window.dbSave('sales_invoices', { invoiceNo, client, groupNo, paymentType, dueDate, items, totalEgp, totalSar, date, accountParty: client, accountType: 'عميل' }); if(paymentType==='نقداً'&&totalEgp>0) await window.dbSave('treasury',{voucherId:invoiceNo,type:'قبض',date,paymentMethod:'خزنة الجنيه',sarRate:13.20,partyType:'عميل',partyName:client,amount:totalEgp,notes:'ترحيل فاتورة مبيعات '+invoiceNo});
+            e.target.reset();
+            document.getElementById('salesItemsTbody').innerHTML = '';
+            addSalesItemRow();
+            alert('تم إصدار فاتورة المبيعات بنجاح! ✅');
+        }
+
+        function renderSalesInvoicesTable() {
+            const data = window.appData.sales_invoices || [];
+            const tbody = document.querySelector('#salesInvoicesTable tbody');
+            if(!tbody) return;
+            tbody.innerHTML = data.map(item => `
+                <tr>
+                    <td><b>${item.invoiceNo}</b></td>
+                    <td>${item.groupNo}</td>
+                    <td>${item.client}</td>
+                    <td>${item.paymentType}</td>
+                    <td>${item.dueDate || '-'}</td>
+                    <td><b style="color:var(--success);">${(item.totalEgp || 0).toLocaleString()} ج.م</b></td>
+                    <td><b style="color:var(--warning);">${(item.totalSar || 0).toLocaleString()} ر.س</b></td>
+                    <td>${item.date}</td>
+                    <td>
+                        <button class="btn-print" onclick="printSalesInvoice('${item.docId}')">🖨️ طباعة</button>
+                        <button class="btn-del" onclick="delRow('sales_invoices', '${item.docId}')">حذف</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // تحديث قائمة العملاء في الفواتير والتقارير
+            const clientSelect = document.getElementById('inv_sale_client');
+            const reportClient = document.getElementById('report_client_select');
+            const clients = (window.appData.dealers || []).filter(d => d.type === 'العملاء');
+            let opts = '<option value="">اختر العميل...</option>';
+            clients.forEach(c => { opts += `<option value="${c.name}">${c.name}</option>`; });
+            if(clientSelect) clientSelect.innerHTML = opts;
+            if(reportClient) reportClient.innerHTML = opts;
+        }
+
+        function printSalesInvoice(docId) { const inv=(window.appData.sales_invoices||[]).find(i=>i.docId===docId);if(!inv)return;const rows=(inv.items||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.desc||'-'}</td><td>${x.age||'-'}</td><td>${x.qty||0}</td><td>${x.curr||'-'}</td><td>${(x.price||0).toLocaleString()}</td><td>${(x.sub||0).toLocaleString()}</td></tr>`).join('');const w=window.open('','','width=900,height=800');w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - فاتورة مبيعات تفصيلية</h2><p>رقم الفاتورة: <b>${inv.invoiceNo}</b> | العميل: <b>${inv.client}</b> | المجموعة: <b>${inv.groupNo}</b> | التاريخ: <b>${inv.date}</b></p><table><thead><tr><th>م</th><th>البيان</th><th>الفئة</th><th>العدد</th><th>العملة</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table><h3>الإجمالي بالجنيه: ${(inv.totalEgp||0).toLocaleString()} ج.م</h3><h3>الإجمالي بالريال: ${(inv.totalSar||0).toLocaleString()} ر.س</h3></body></html>`);w.document.close();setTimeout(()=>w.print(),300); }
+
+function addPurchaseItemRow() {
+            const tbody = document.getElementById('purchaseItemsTbody');
+            if(!tbody) return;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><select class="pi_desc" required><option value="">اختر البيان...</option><option>تنفيذ شركة</option><option>مصروفات دورة نقل</option><option>باركود</option><option>طيران</option><option>فندق مكة</option><option>فندق المدينة</option><option>بدل إشراف</option><option>تأشيرة</option><option value="أخرى">أخرى</option></select></td>
+                <td><input type="number" class="pi_qty" min="1" value="1" oninput="calcPurchaseTotals()" required></td>
+                <td><input type="number" step="0.01" class="pi_price" value="0" oninput="calcPurchaseTotals()" required></td>
+                <td><select class="pi_curr" onchange="calcPurchaseTotals()"><option value="EGP">EGP</option><option value="SAR">SAR</option></select></td>
+                <td><input type="number" step="0.01" class="pi_rate" value="13.20" oninput="calcPurchaseTotals()"></td>
+                <td><b class="pi_subtotal" style="color:var(--success);">0</b></td>
+                <td><button type="button" class="btn-del" onclick="this.closest('tr').remove(); calcPurchaseTotals();">حذف</button></td>
+            `;
+            tbody.appendChild(tr);
+            calcPurchaseTotals();
+        }
+
+        function calcPurchaseTotals() {
+            let totalEgp = 0, totalSar = 0;
+            document.querySelectorAll('#purchaseItemsTbody tr').forEach(tr => {
+                const qty = parseFloat(tr.querySelector('.pi_qty').value) || 0;
+                const price = parseFloat(tr.querySelector('.pi_price').value) || 0;
+                const curr = tr.querySelector('.pi_curr').value;
+                const rate = parseFloat(tr.querySelector('.pi_rate').value) || 13.20;
+                const sub = qty * price;
+                tr.querySelector('.pi_subtotal').innerText = sub.toLocaleString();
+                if(curr === 'EGP') totalEgp += sub;
+                else {
+                    totalSar += sub;
+                    totalEgp += (sub * rate);
+                }
+            });
+            document.getElementById('pur_total_egp').innerText = totalEgp.toLocaleString() + ' ج.م';
+            document.getElementById('pur_total_sar').innerText = totalSar.toLocaleString() + ' ر.س';
+        }
+
+        function togglePurchaseDueDateGroup() {
+            const type = document.getElementById('inv_pur_payment_type').value;
+            const group = document.getElementById('purchaseDueDateGroup');
+            if(type === 'آجل') group.classList.remove('hidden');
+            else group.classList.add('hidden');
+        }
+
+        async function addPurchaseInvoice(e) {
+            e.preventDefault();
+            const supplier = document.getElementById('inv_pur_supplier').value;
+            const paymentType = document.getElementById('inv_pur_payment_type').value;
+            const dueDate = document.getElementById('inv_pur_due_date').value;
+            const notes = document.getElementById('inv_pur_notes').value;
+
+            let items = [];
+            let totalEgp = 0, totalSar = 0;
+            document.querySelectorAll('#purchaseItemsTbody tr').forEach(tr => {
+                const desc = tr.querySelector('.pi_desc').value;
+                const qty = parseFloat(tr.querySelector('.pi_qty').value) || 0;
+                const curr = tr.querySelector('.pi_curr').value;
+                const price = parseFloat(tr.querySelector('.pi_price').value) || 0;
+                const sub = qty * price;
+                items.push({ desc, qty, curr, price, sub });
+                if(curr === 'EGP') totalEgp += sub;
+                else {
+                    totalSar += sub;
+                    totalEgp += sub * 13.20;
+                }
+            });
+
+            const invoiceNo = 'PUR-' + Math.floor(100000 + Math.random() * 900000);
+            const date = new Date().toISOString().split('T')[0];
+
+            await window.dbSave('purchase_invoices', { invoiceNo, supplier, paymentType, dueDate, notes, items, totalEgp, totalSar, date, accountParty: supplier, accountType: 'مورد' }); if(paymentType==='نقداً'&&totalEgp>0) await window.dbSave('treasury',{voucherId:invoiceNo,type:'صرف',date,paymentMethod:'خزنة الجنيه',sarRate:13.20,partyType:'مورد',partyName:supplier,amount:totalEgp,notes:'ترحيل فاتورة مشتريات '+invoiceNo});
+            e.target.reset();
+            document.getElementById('purchaseItemsTbody').innerHTML = '';
+            addPurchaseItemRow();
+            alert('تم إصدار وترحيل فاتورة المشتريات بنجاح! ✅');
+        }
+
+        function renderPurchaseInvoicesTable() {
+            const data = window.appData.purchase_invoices || [];
+            const tbody = document.querySelector('#purchaseInvoicesTable tbody');
+            if(!tbody) return;
+            tbody.innerHTML = data.map(item => `
+                <tr>
+                    <td><b>${item.invoiceNo}</b></td>
+                    <td>${item.supplier}</td>
+                    <td>${item.paymentType}</td>
+                    <td>${item.dueDate || '-'}</td>
+                    <td>${item.notes || '-'}</td>
+                    <td><b style="color:var(--success);">${(item.totalEgp || 0).toLocaleString()} ج.م</b></td>
+                    <td><b style="color:var(--warning);">${(item.totalSar || 0).toLocaleString()} ر.س</b></td>
+                    <td>${item.date}</td>
+                    <td>
+                        <button class="btn-print" onclick="printPurchaseInvoice('${item.docId}')">🖨️ طباعة</button>
+                        <button class="btn-del" onclick="delRow('purchase_invoices', '${item.docId}')">حذف</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            const supplierSelect = document.getElementById('inv_pur_supplier');
+            const reportSupplier = document.getElementById('report_supplier_select');
+            const suppliers = (window.appData.dealers || []).filter(d => d.type === 'الموردين');
+            let opts = '<option value="">اختر المورد...</option>';
+            suppliers.forEach(s => { opts += `<option value="${s.name}">${s.name}</option>`; });
+            if(supplierSelect) supplierSelect.innerHTML = opts;
+            if(reportSupplier) reportSupplier.innerHTML = opts;
+        }
+
+        function printPurchaseInvoice(docId) { const inv=(window.appData.purchase_invoices||[]).find(i=>i.docId===docId);if(!inv)return;const rows=(inv.items||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.desc||'-'}</td><td>${x.qty||0}</td><td>${x.curr||'-'}</td><td>${(x.price||0).toLocaleString()}</td><td>${(x.sub||0).toLocaleString()}</td></tr>`).join('');const w=window.open('','','width=900,height=800');w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - فاتورة مشتريات</h2><p>رقم الفاتورة: <b>${inv.invoiceNo}</b> | المورد: <b>${inv.supplier}</b> | التاريخ: <b>${inv.date}</b> | النوع: <b>${inv.paymentType}</b></p><table><thead><tr><th>م</th><th>البيان</th><th>العدد</th><th>العملة</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table><h3>الإجمالي بالجنيه: ${(inv.totalEgp||0).toLocaleString()} ج.م</h3><h3>الإجمالي بالريال: ${(inv.totalSar||0).toLocaleString()} ر.س</h3></body></html>`);w.document.close();setTimeout(()=>w.print(),300); }
+
+function initTreasuryForm() {
+            updateVoucherIdPrefix();
+            updateTreasuryPartyTypes();
+            populatePartyNames();
+            spellOutAmount();
+        }
+
+        function updateVoucherIdPrefix() {
+            const type = document.getElementById('tx_type').value;
+            const prefix = type === 'قبض' ? 'REC-' : 'PAY-';
+            document.getElementById('tx_voucher_id').value = prefix + Math.floor(100000 + Math.random() * 900000);
+        }
+
+        function handleTreasuryMethodChange() {}
+
+        function updateTreasuryPartyTypes() {
+            const select = document.getElementById('tx_party_type');
+            if(!select) return;
+            const current = select.value || 'عميل';
+            const dealers = window.appData.dealers || [];
+            const types = [...new Set(dealers.map(d => d.type).filter(Boolean))];
+            const mapped = { 'العملاء':'عميل', 'الموردين':'مورد', 'المصروفات':'مصروفات', 'الاستحقاقات':'استحقاقات', 'الموظفين':'موظف' };
+            const values = ['عميل','مورد','مصروفات','استحقاقات','موظف'];
+            types.forEach(type => { if(!mapped[type] && !values.includes(type)) values.push(type); });
+            select.innerHTML = values.map(value => `<option value="${value}">${value === 'مصروفات' ? 'أخرى / مصروفات' : value}</option>`).join('');
+            select.value = values.includes(current) ? current : 'عميل';
+        }
+
+        function populatePartyNames() {
+            const pType = document.getElementById('tx_party_type').value;
+            const partySelect = document.getElementById('tx_party_name');
+            if(!partySelect) return;
+            const dealers = window.appData.dealers || [];
+            const typeMap = { 'عميل':'العملاء', 'مورد':'الموردين', 'مصروفات':'المصروفات', 'استحقاقات':'الاستحقاقات', 'موظف':'الموظفين' };
+            const dealerType = typeMap[pType] || pType;
+            const list = dealers.filter(d => d.type === dealerType);
+            let html = '<option value="">اختر الاسم...</option>';
+            list.forEach(item => { html += `<option value="${item.name}">${item.name}</option>`; });
+            partySelect.innerHTML = html;
+        }
+
+        function numberToArabicWords(amount, currency) {
+            amount = Math.round((Number(amount) || 0) * 100) / 100;
+            const whole = Math.floor(amount), fraction = Math.round((amount - whole) * 100);
+            const ones = ['صفر','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة'];
+            const teens = ['عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+            const tens = ['','', 'عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+            const hundreds = ['','مائة','مائتان','ثلاثمائة','أربعمائة','خمسمائة','ستمائة','سبعمائة','ثمانمائة','تسعمائة'];
+            function under100(n) {
+                if(n < 10) return ones[n];
+                if(n < 20) return teens[n - 10];
+                const t = Math.floor(n / 10), o = n % 10;
+                return o ? ones[o] + ' و' + tens[t] : tens[t];
+            }
+            function under1000(n) {
+                if(n < 100) return under100(n);
+                const h = Math.floor(n / 100), rest = n % 100;
+                return rest ? hundreds[h] + ' و' + under100(rest) : hundreds[h];
+            }
+            function group(n) {
+                if(!n) return '';
+                const millions = Math.floor(n / 1000000);
+                const thousands = Math.floor((n % 1000000) / 1000);
+                const rest = n % 1000;
+                const parts = [];
+                if(millions) parts.push(millions === 1 ? 'مليون' : millions === 2 ? 'مليونان' : millions < 11 ? under1000(millions) + ' ملايين' : under1000(millions) + ' مليون');
+                if(thousands) parts.push(thousands === 1 ? 'ألف' : thousands === 2 ? 'ألفان' : thousands < 11 ? under1000(thousands) + ' آلاف' : under1000(thousands) + ' ألف');
+                if(rest) parts.push(under1000(rest));
+                return parts.join(' و');
+            }
+            const isSar = currency === 'SAR';
+            const mainUnit = isSar ? 'ريال سعودي' : 'جنيه مصري';
+            const subUnit = isSar ? 'هللة' : 'قرش';
+            const main = whole === 0 ? 'صفر' : group(whole);
+            const sub = fraction ? ' و' + under100(fraction) + ' ' + subUnit : '';
+            return 'فقط ' + main + ' ' + mainUnit + sub + ' لا غير';
+        }
+
+        function spellOutAmount() {
+            const amount = parseFloat(document.getElementById('tx_amount')?.value) || 0;
+            const method = document.getElementById('tx_payment_method')?.value || 'خزنة الجنيه';
+            const currency = method === 'خزنة الريال' ? 'SAR' : 'EGP';
+            const spelled = document.getElementById('tx_amount_spelled');
+            if(spelled) spelled.innerText = numberToArabicWords(amount, currency);
+        }
+
+        async function addTreasuryTx(e) {
+            e.preventDefault();
+            const voucherId = document.getElementById('tx_voucher_id').value;
+            const type = document.getElementById('tx_type').value;
+            const date = document.getElementById('tx_date').value;
+            const paymentMethod = document.getElementById('tx_payment_method').value;
+            const sarRate = parseFloat(document.getElementById('tx_sar_rate').value) || 13.20;
+            const partyType = document.getElementById('tx_party_type').value;
+            const partyName = document.getElementById('tx_party_name').value;
+            const amount = parseFloat(document.getElementById('tx_amount').value) || 0;
+            const notes = document.getElementById('tx_notes').value;
+
+            const currency = paymentMethod === 'خزنة الريال' ? 'SAR' : 'EGP';
+            const amountSpelled = numberToArabicWords(amount, currency);
+            await window.dbSave('treasury', { voucherId, type, date, paymentMethod, currency, sarRate, partyType, partyName, amount, amountSpelled, notes });
+            e.target.reset();
+            initTreasuryForm();
+            alert('تم حفظ وترحيل السند بنجاح! ✅');
+        }
+
+        function renderTreasuryTable() {
+            const data = window.appData.treasury || [];
+            const tbody = document.querySelector('#treasuryTable tbody');
+            const searchQuery = (document.getElementById('search_treasury_global')?.value || '').toLowerCase().trim();
+            if(!tbody) return;
+
+            if(!searchQuery) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#64748b; padding:20px;">قم بالبحث في خانة البحث أعلاه لإظهار السندات المطابقة...</td></tr>`;
+                renderTreasuryBalances();
+                return;
+            }
+
+            const filtered = data.filter(item => {
+                return (item.voucherId || '').toLowerCase().includes(searchQuery) || (item.partyName || '').toLowerCase().includes(searchQuery) || (item.notes || '').toLowerCase().includes(searchQuery);
+            });
+
+            if(filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px;">لا توجد سندات مطابقة لبحثك.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(item => `
+                <tr>
+                    <td><b>${item.voucherId}</b></td>
+                    <td>${item.date}</td>
+                    <td><span style="color:${item.type === 'قبض' ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${item.type}</span></td>
+                    <td>${item.paymentMethod}</td>
+                    <td>${item.partyType}: <b>${item.partyName}</b></td>
+                    <td>${item.notes || '-'}</td>
+                    <td><b style="color:var(--success);">${(item.amount || 0).toLocaleString()}</b></td>
+                    <td>
+                        <button class="btn-print" onclick="printTreasuryVoucher('${item.docId}')">🖨️ طباعة</button>
+                        <button class="btn-del" onclick="delRow('treasury', '${item.docId}')">حذف</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            renderTreasuryBalances();
+        }
+
+        function renderTreasuryBalances() {
+            const data = window.appData.treasury || [];
+            let egpSafe = 0, sarSafe = 0, suppliesSafe = 0;
+
+            data.forEach(t => {
+                const amt = parseFloat(t.amount) || 0;
+                const isReceipt = t.type === 'قبض';
+                if(t.paymentMethod === 'خزنة الجنيه') {
+                    egpSafe += isReceipt ? amt : -amt;
+                } else if(t.paymentMethod === 'خزنة الريال') {
+                    sarSafe += isReceipt ? amt : -amt;
+                } else if(t.paymentMethod === 'خزنة التوريدات') {
+                    suppliesSafe += isReceipt ? amt : -amt;
+                }
+            });
+
+            const e1 = document.getElementById('cash_egp_val');
+            const e2 = document.getElementById('cash_sar_val');
+            const e3 = document.getElementById('cash_supplies_val');
+            const dashEgp = document.getElementById('dash-cash-egp');
+            const dashSupplies = document.getElementById('dash-cash-supplies');
+
+            if(e1) e1.innerText = egpSafe.toLocaleString() + ' ج.م';
+            if(e2) e2.innerText = sarSafe.toLocaleString() + ' ر.س';
+            if(e3) e3.innerText = suppliesSafe.toLocaleString() + ' ج.م';
+            if(dashEgp) dashEgp.innerText = egpSafe.toLocaleString() + ' ج.م';
+            if(dashSupplies) dashSupplies.innerText = suppliesSafe.toLocaleString() + ' ج.م';
+        }
+
+        function printCurrentTreasuryVoucher() {
+            const currency = (document.getElementById('tx_payment_method') || {}).value === 'خزنة الريال' ? 'SAR' : 'EGP';
+            const item = {
+                voucherId: (document.getElementById('tx_voucher_id') || {}).value || '-',
+                type: (document.getElementById('tx_type') || {}).value || 'قبض',
+                date: (document.getElementById('tx_date') || {}).value || new Date().toISOString().split('T')[0],
+                paymentMethod: (document.getElementById('tx_payment_method') || {}).value || '-',
+                partyType: (document.getElementById('tx_party_type') || {}).value || '-',
+                partyName: (document.getElementById('tx_party_name') || {}).value || '-',
+                sarRate: parseFloat((document.getElementById('tx_sar_rate') || {}).value) || 13.20,
+                amount: parseFloat((document.getElementById('tx_amount') || {}).value) || 0,
+                amountSpelled: numberToArabicWords(parseFloat((document.getElementById('tx_amount') || {}).value) || 0, currency),
+                notes: (document.getElementById('tx_notes') || {}).value || '-'
+            };
+            printTreasuryVoucherData(item);
+        }
+
+        function printTreasuryVoucherData(item) {
+            const currency = item.currency || (item.paymentMethod === 'خزنة الريال' ? 'SAR' : 'EGP');
+            const spelled = item.amountSpelled || numberToArabicWords(item.amount, currency);
+            const title = item.type === 'قبض' ? 'سند قبض' : 'سند صرف';
+            const w = window.open('', '', 'width=850,height=800');
+            w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${title} ${item.voucherId}</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:28px;color:#111}.voucher{border:2px solid #111;padding:22px;max-width:760px;margin:auto}.brand{text-align:center;border-bottom:2px solid #111;padding-bottom:12px}.brand h2{margin:0 0 7px}.title{text-align:center;font-size:22px;font-weight:bold;margin:20px 0}.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-bottom:1px solid #777;padding-bottom:12px}.line{padding:9px 0;border-bottom:1px solid #ddd}.amount{font-size:20px;font-weight:bold;border:2px solid #111;padding:12px;margin-top:18px}.words{font-size:17px;font-weight:bold;margin-top:14px;padding:12px;background:#f1f5f9}.signatures{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:55px;text-align:center}.signatures div{border-top:1px solid #111;padding-top:8px}@media print{body{padding:0}.voucher{border:2px solid #111}}</style></head><body><div class="voucher"><div class="brand"><h2>🌍 شركة نيو هاي لايتس</h2><div>إدارة الحسابات والخزينة</div></div><div class="title">${title}</div><div class="meta"><div><b>رقم السند:</b> ${item.voucherId || '-'}</div><div><b>التاريخ:</b> ${item.date || '-'}</div><div><b>طريقة الدفع:</b> ${item.paymentMethod || '-'}</div><div><b>النوع:</b> ${item.partyType || '-'}</div><div><b>الاسم:</b> ${item.partyName || '-'}</div><div><b>سعر الصرف:</b> ${item.sarRate || '-'}</div></div><div class="line"><b>البيان:</b> ${item.notes || '-'}</div><div class="amount">المبلغ: ${(item.amount || 0).toLocaleString()} ${currency === 'SAR' ? 'ر.س' : 'ج.م'}</div><div class="words">${spelled}</div><div class="signatures"><div>المستلم / المسلم</div><div>اعتماد الإدارة</div></div></div></body></html>`);
+            w.document.close();
+            setTimeout(() => w.print(), 300);
+        }
+
+        function printTreasuryVoucher(docId) {
+            const item = (window.appData.treasury || []).find(i => i.docId === docId);
+            if(item) printTreasuryVoucherData(item);
+        }
+
+        function printCurrentFormPricing() {
+            const name = document.getElementById('hj_name')?.value || 'البرنامج الحالي';
+            const quad = document.getElementById('calc_quad')?.innerText || '0 ج.م';
+            const triple = document.getElementById('calc_triple')?.innerText || '0 ج.م';
+            const double = document.getElementById('calc_double')?.innerText || '0 ج.م';
+            const w=window.open('','','width=800,height=650');
+            w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تسعير ${name}</title><style>body{font-family:Tahoma;padding:28px}h2{text-align:center;border-bottom:2px solid #111;padding:12px}.row{display:flex;justify-content:space-between;border-bottom:1px solid #ccc;padding:14px;font-size:18px}</style></head><body><h2>🌍 شركة نيو هاي لايتس<br>تسعير البرنامج: ${name}</h2><div class="row"><b>رباعي</b><span>${quad}</span></div><div class="row"><b>ثلاثي</b><span>${triple}</span></div><div class="row"><b>ثنائي</b><span>${double}</span></div></body></html>`); w.document.close(); setTimeout(()=>w.print(),300);
+        }
+
+        function exportDataBackup() {
+            const data = JSON.stringify(window.appData || {}, null, 2);
+            const blob = new Blob([data], {type:'application/json'});
+            const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='new-high-lights-backup.json'; a.click(); URL.revokeObjectURL(a.href);
+        }
+
+        async function importDataBackup(e) {
+            const file=e.target.files && e.target.files[0]; if(!file)return;
+            try { const data=JSON.parse(await file.text()); for(const [collectionName,items] of Object.entries(data)){ if(!Array.isArray(items))continue; for(const item of items){const copy={...item};delete copy.docId;await window.dbSave(collectionName,copy);} } alert('تم استعادة النسخة الاحتياطية بنجاح ✅'); }
+            catch(err){ alert('ملف النسخة الاحتياطية غير صالح'); }
+            e.target.value='';
+        }
+
+        function renderClientStatementTable() {
+            const name=document.getElementById('report_client_select')?.value, tbody=document.querySelector('#reportClientTable tbody'); if(!tbody)return;
+            const sales=(window.appData.sales_invoices||[]).filter(x=>x.client===name), treasury=(window.appData.treasury||[]).filter(x=>x.partyName===name);
+            tbody.innerHTML=[...sales.map(x=>`<tr><td>${x.date||'-'}</td><td>فاتورة مبيعات</td><td>${x.invoiceNo||'-'}</td><td>${(x.totalEgp||0).toLocaleString()}</td><td>${(x.totalSar||0).toLocaleString()}</td></tr>`),...treasury.map(x=>`<tr><td>${x.date||'-'}</td><td>${x.type||'-'}</td><td>${x.voucherId||x.notes||'-'}</td><td>${x.currency==='SAR'?0:(x.amount||0).toLocaleString()}</td><td>${x.currency==='SAR'?(x.amount||0).toLocaleString():0}</td></tr>`)].join('') || '<tr><td colspan="5" style="text-align:center">لا توجد معاملات</td></tr>';
+        }
+
+        function printClientStatement() { window.print(); }
+
+        function renderSupplierStatementTable() {
+            const supplierName = document.getElementById('report_supplier_select').value;
+            const tbody = document.querySelector('#reportSupplierTable tbody');
+            if(!tbody) return;
+            if(!supplierName) { tbody.innerHTML = ''; return; }
+
+            const purchases = (window.appData.purchase_invoices || []).filter(i => i.supplier === supplierName);
+            let html = '';
+            purchases.forEach(p => {
+                html += `<tr><td>${p.date}</td><td>فاتورة مشتريات</td><td>فاتورة رقم ${p.invoiceNo}</td><td>${(p.totalEgp || 0).toLocaleString()}</td><td>${(p.totalSar || 0).toLocaleString()}</td></tr>`;
+            });
+            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد معاملات لهذا المورد.</td></tr>';
+        }
+
+        function printSupplierStatement() { window.print(); }
+
+        function renderAccountStatementTable() {
+            const acc = document.getElementById('report_account_select').value;
+            const tbody = document.querySelector('#reportAccountTable tbody');
+            if(!tbody) return;
+
+            const treasury = window.appData.treasury || [];
+            let filtered = [];
+            if(acc === 'SAR_SAFE') filtered = treasury.filter(t => t.paymentMethod === 'خزنة الريال');
+            else if(acc === 'EGP_SAFE') filtered = treasury.filter(t => t.paymentMethod === 'خزنة الجنيه');
+            else if(acc === 'SUPPLIES_SAFE') filtered = treasury.filter(t => t.paymentMethod === 'خزنة التوريدات');
+            else filtered = treasury.filter(t => t.paymentMethod === 'حساب البنك');
+
+            let html = '';
+            filtered.forEach(t => {
+                html += `<tr><td>${t.date}</td><td>${t.type}</td><td>${t.paymentMethod}</td><td>${t.notes || t.partyName}</td><td><b>${(t.amount || 0).toLocaleString()}</b></td></tr>`;
+            });
+            tbody.innerHTML = html || '<tr><td colspan="5" style="text-align:center;">لا توجد حركات لهذا الحساب.</td></tr>';
+        }
+
+        function printAccountStatement() { window.print(); }
+
+        async function updateEmployeePassword(e) {
+            e.preventDefault();
+            const target = document.getElementById('user_target_select').value;
+            const newPass = document.getElementById('user_new_password').value.trim();
+            const users = getUsersConfig();
+            if(users[target]) {
+                users[target].password = newPass;
+                localStorage.setItem('nh_system_users', JSON.stringify(users));
+                await window.dbSetUserPassword(target, newPass);
+                alert('تم تحديث كلمة المرور بنجاح! ✅');
+                e.target.reset();
+            }
+        }
+        function renderReportsStatements() {
+            const from = document.getElementById('rep_date_from')?.value || '';
+            const to = document.getElementById('rep_date_to')?.value || '';
+            const inRange = date => (!from || date >= from) && (!to || date <= to);
+            const sales = (window.appData.sales_invoices || []).filter(x => inRange(x.date || ''));
+            const purchases = (window.appData.purchase_invoices || []).filter(x => inRange(x.date || ''));
+            const treasury = (window.appData.treasury || []).filter(x => inRange(x.date || ''));
+            const salesEgp = sales.reduce((a,x)=>a+(x.totalEgp||0),0), salesSar = sales.reduce((a,x)=>a+(x.totalSar||0),0);
+            const purEgp = purchases.reduce((a,x)=>a+(x.totalEgp||0),0), purSar = purchases.reduce((a,x)=>a+(x.totalSar||0),0);
+            const set = (id,val,unit) => { const el=document.getElementById(id); if(el) el.innerText = (val||0).toLocaleString() + ' ' + unit; };
+            set('rep_sales_egp',salesEgp,'ج.م'); set('rep_pur_egp',purEgp,'ج.م'); set('rep_sales_sar',salesSar,'ر.س'); set('rep_pur_sar',purSar,'ر.س');
+            renderVisualFinanceReport({sales,purchases,treasury,salesEgp,purEgp,salesSar,purSar,from,to});
+            if(typeof renderClientStatementTable === 'function') renderClientStatementTable();
+            if(typeof renderSupplierStatementTable === 'function') renderSupplierStatementTable();
+            if(typeof renderAccountStatementTable === 'function') renderAccountStatementTable();
+        }
+
+        function renderVisualFinanceReport(data) {
+            const {sales,purchases,treasury,salesEgp,purEgp,salesSar,purSar} = data;
+            const summary = document.getElementById('visualFinanceSummary'), bars = document.getElementById('visualFinanceBars'), safes = document.getElementById('visualSafeBalances'), mix = document.getElementById('visualFinanceMix');
+            if(!summary || !bars || !safes || !mix) return;
+            const received = treasury.filter(x=>x.type==='قبض'), spent = treasury.filter(x=>x.type==='صرف');
+            const receivedEgp = received.filter(x=>x.currency!=='SAR' && x.paymentMethod!=='خزنة الريال').reduce((a,x)=>a+(x.amount||0),0);
+            const spentEgp = spent.filter(x=>x.currency!=='SAR' && x.paymentMethod!=='خزنة الريال').reduce((a,x)=>a+(x.amount||0),0);
+            const receivedSar = received.filter(x=>x.currency==='SAR' || x.paymentMethod==='خزنة الريال').reduce((a,x)=>a+(x.amount||0),0);
+            const spentSar = spent.filter(x=>x.currency==='SAR' || x.paymentMethod==='خزنة الريال').reduce((a,x)=>a+(x.amount||0),0);
+            const cards = [['المبيعات',salesEgp,'ج.م','var(--success)'],['المشتريات',purEgp,'ج.م','var(--danger)'],['القبض',receivedEgp,'ج.م','var(--accent)'],['الصرف',spentEgp,'ج.م','var(--warning)']];
+            summary.innerHTML = cards.map(c=>`<div style="padding:14px; border:1px solid var(--border-color); border-radius:9px; background:var(--card-bg);"><div style="font-size:12px; color:var(--text-main);">${c[0]}</div><strong style="display:block; font-size:20px; color:${c[3]}; margin-top:5px;">${(c[1]||0).toLocaleString()} ${c[2]}</strong></div>`).join('');
+            const daily = {};
+            [...sales.map(x=>({date:x.date,type:'مبيعات',value:x.totalEgp||0,color:'var(--success)'})), ...purchases.map(x=>({date:x.date,type:'مشتريات',value:x.totalEgp||0,color:'var(--danger)'})), ...treasury.map(x=>({date:x.date,type:x.type,value:x.amount||0,color:x.type==='قبض'?'var(--accent)':'var(--warning)'}))].forEach(x=>{ const key=x.date||'بدون تاريخ'; if(!daily[key]) daily[key]={}; daily[key][x.type]=(daily[key][x.type]||0)+x.value; });
+            const days=Object.keys(daily).sort().slice(-10), max=Math.max(1,...days.flatMap(d=>Object.values(daily[d])));
+            bars.innerHTML = days.length ? days.map(d=>`<div style="display:grid; grid-template-columns:88px 1fr; gap:10px; align-items:center; margin:10px 0;"><small>${d}</small><div style="display:flex; flex-direction:column; gap:4px;">${Object.entries(daily[d]).map(([label,val])=>`<div title="${label}: ${val.toLocaleString()}" style="height:12px; width:${Math.max(3,(val/max)*100)}%; background:${label==='مبيعات'?'var(--success)':label==='مشتريات'?'var(--danger)':label==='قبض'?'var(--accent)':'var(--warning)'}; border-radius:4px;"></div>`).join('')}</div></div>`).join('') : '<div style="text-align:center; color:#64748b; padding:24px;">لا توجد حركة خلال الفترة المحددة.</div>';
+            const safe = {'خزنة الجنيه':0,'خزنة الريال':0,'خزنة التوريدات':0,'حساب البنك':0};
+            (window.appData.treasury||[]).forEach(x=>{ const key=x.paymentMethod||'حساب البنك'; if(safe[key]===undefined) safe[key]=0; const sign=x.type==='صرف'?-1:1; safe[key]+=sign*(x.amount||0); });
+            safes.innerHTML=Object.entries(safe).map(([name,val])=>`<div style="display:flex; justify-content:space-between; gap:10px; padding:12px 0; border-bottom:1px solid var(--border-color);"><span>${name}</span><b style="color:${val>=0?'var(--success)':'var(--danger)'};">${val.toLocaleString()}</b></div>`).join('');
+            const mixData=[['مبيعات',salesEgp,'var(--success)'],['مشتريات',purEgp,'var(--danger)'],['قبض',receivedEgp,'var(--accent)'],['صرف',spentEgp,'var(--warning)']];
+            mix.innerHTML=mixData.map(x=>`<span style="padding:8px 12px; border-radius:20px; background:var(--table-header-bg); border:1px solid var(--border-color);"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${x[2]};margin-left:5px;"></i>${x[0]}: <b>${x[1].toLocaleString()}</b></span>`).join('');
+        }
+
+        function printVisualFinanceReport() {
+            const el=document.getElementById('visualFinanceReport'); if(!el) return;
+            const w=window.open('','','width=1000,height=800'); w.document.write('<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>التقرير البصري للحركة المالية والخزنة</title><style>body{font-family:Tahoma;padding:20px;color:#111}h2{text-align:center;border-bottom:2px solid #111;padding-bottom:12px}.print-copy{margin-top:20px}button{display:none}@media print{body{padding:0}}</style></head><body><h2>🌍 نيو هاي لايتس، التقرير البصري للحركة المالية والخزنة</h2><div class="print-copy">'+el.innerHTML+'</div></body></html>'); w.document.close(); setTimeout(()=>w.print(),300);
+        }
+
+        function toggleDashboardExtraCards() {
+            const wrap = document.getElementById('dashboardExtraCards');
+            if(wrap) wrap.classList.toggle('hidden');
+        }
+
+        function renderDashboardExtraCards() {
+            const tripData = [...(window.appData.trip_data||[]), ...(window.appData.shared_trip_data||[])];
+            const programs = {};
+            tripData.forEach(p => { const name=p.tripName||'بدون برنامج'; programs[name]=(programs[name]||0)+1; });
+            const pEl=document.getElementById('dash-pilgrims-by-program');
+            if(pEl) pEl.innerHTML=Object.entries(programs).map(([name,count])=>`<div><b>${name}</b>: ${count} معتمر</div>`).join('') || 'لا توجد رحلات مسجلة';
+            const tEl=document.getElementById('dash-trip-count'); if(tEl) tEl.innerText=new Set(tripData.map(p=>p.tripName).filter(Boolean)).size;
+            const aEl=document.getElementById('dash-agent-count'); if(aEl) aEl.innerText=new Set(tripData.map(p=>p.agentName).filter(Boolean)).size;
+        }
+
+        function updateTotalTripSelect() {
+            const select=document.getElementById('ts_total_trip_select'); if(!select)return;
+            const current=select.value; const normalNames=[...(window.appData.hajj||[]).map(x=>x.name),...(window.appData.trip_data||[]).map(x=>x.tripName),...(window.appData.trip_supplies||[]).map(x=>x.tripName)]; const sharedNames=new Set([...(window.appData.shared_hajj||[]).map(x=>x.name),...(window.appData.shared_trip_data||[]).map(x=>x.tripName)]); const names=[...new Set(normalNames.filter(Boolean).filter(name=>!sharedNames.has(name)))];
+            select.innerHTML='<option value="">اختر الرحلة...</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join(''); select.value=names.includes(current)?current:'';
+        }
+
+        function renderTripTotalSettlement() {
+            updateTotalTripSelect(); const trip=((document.getElementById('ts_total_trip_select')||{}).value||''); const box=document.getElementById('tripTotalSettlementCards'); if(!box)return;
+            if(!trip){box.innerHTML='';return;}
+            const passengers=(window.appData.trip_data||[]).filter(p=>p.tripName===trip);
+            const supplies=(window.appData.trip_supplies||[]).filter(x=>x.tripName===trip);
+            const prog=(window.appData.hajj||[]).find(x=>x.name===trip);
+            const prices={'رباعي':prog?.quadPrice||0,'ثلاثي':prog?.triplePrice||0,'ثنائي':prog?.doublePrice||0,'خماسي':prog?.quadPrice||0};
+            const totalSale=passengers.reduce((sum,p)=>sum+(Number(p.individualPrice)||prices[p.roomType||'رباعي']||0),0);
+            const suppliesTotal=supplies.reduce((sum,x)=>sum+(Number(x.amount)||0),0);
+            const expenses=supplies.filter(x=>/مصروف|صرف|تصفية/i.test(x.notes||'')).reduce((sum,x)=>sum+(Number(x.amount)||0),0);
+            const commissions=supplies.reduce((sum,x)=>sum+(Number(x.commission)||0),0);
+            const net=totalSale-suppliesTotal-expenses-commissions;
+            const cards=[['إجمالي سعر البيع',totalSale,'var(--success)'],['التوريدات',suppliesTotal,'var(--accent)'],['المصروفات',expenses,'var(--warning)'],['العمولات',commissions,'var(--danger)'],['الصافي',net,net>=0?'var(--success)':'var(--danger)']];
+            box.innerHTML=cards.map(c=>`<div class="metric-card" style="border:1px solid var(--border-color)"><div class="metric-title">${c[0]}</div><div class="metric-value" style="color:${c[2]}">${c[1].toLocaleString()} ج.م</div></div>`).join('');
+        }
+
+        function toggleMobileSidebar(force) {
+            const sidebar=document.querySelector('.sidebar'), overlay=document.getElementById('mobileSidebarOverlay');
+            if(!sidebar || !overlay) return;
+            const open=typeof force==='boolean' ? force : !sidebar.classList.contains('mobile-open');
+            sidebar.classList.toggle('mobile-open',open); overlay.classList.toggle('visible',open);
+        }
+        document.addEventListener('click', function(e) {
+            if(window.innerWidth <= 760 && e.target.closest('.sidebar .nav-btn')) toggleMobileSidebar(false);
+        });
+    </script>
+</body>
+</html>
