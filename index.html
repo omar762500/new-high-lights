@@ -1063,7 +1063,7 @@
         <!-- 🔑 10. قسم إدارة الموظفين وتغيير كلمات المرور -->
         <div id="users_management" class="tab-panel">
             <h2>🔑 إدارة الموظفين والباسورد والصلاحيات</h2><br>
-            <div class="section-card" style="border-right:4px solid var(--danger);"><h3>مسح بيانات الاختبار</h3><p style="font-size:12px;color:var(--text-main);">يمسح جميع السجلات من Firebase قبل بدء إدخال البيانات الحقيقية. لا تستخدمه بعد بدء العمل الفعلي.</p><button type="button" class="btn-submit btn-danger" onclick="clearAllFirebaseTestData()">🗑️ مسح جميع بيانات الاختبار من Firebase</button></div>
+            <div class="section-card" style="border-right:4px solid var(--danger);"><h3>مسح بيانات الاختبار</h3><p style="font-size:12px;color:var(--text-main);">يمسح جميع السجلات من Firebase قبل بدء إدخال البيانات الحقيقية. لا تستخدمه بعد بدء العمل الفعلي.</p><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;"><button type="button" class="btn-submit btn-danger" onclick="clearAllFirebaseTestData()">🗑️ مسح جميع بيانات الاختبار من Firebase</button><button type="button" class="btn-submit" style="background:#16a34a;" onclick="downloadNormalPassengerData()">⬇️ تنزيل بيانات المعتمرين - الرحلات العادية</button><button type="button" class="btn-submit" style="background:#7c3aed;" onclick="downloadSharedPassengerData()">⬇️ تنزيل بيانات المعتمرين - الرحلات المشتركة</button></div></div>
             <div class="section-card" style="border-right: 4px solid var(--accent);">
                 <h3>إضافة يوزر جديد وتوزيع الصلاحيات</h3>
                 <form onsubmit="createSystemUser(event)" class="form-grid">
@@ -1077,9 +1077,11 @@
             </div>
             <div class="section-card"><h3>تغيير كلمة المرور أو كود الحذف</h3>
                 <form onsubmit="updateEmployeePassword(event)" class="form-grid">
-                    <div class="form-group"><label>الحساب</label><select id="user_target_select" required></select></div>
-                    <div class="form-group"><label>كلمة المرور الجديدة</label><input type="text" id="user_new_password" required placeholder="أدخل كلمة المرور الجديدة" minlength="3"></div>
-                    <button type="submit" class="btn-submit btn-success">🔑 حفظ وتحديث كلمة المرور</button>
+                    <div class="form-group"><label>الحساب</label><select id="user_target_select" required onchange="populateUserEditFields()"></select></div>
+                    <div class="form-group"><label>اسم الموظف / الاسم الظاهر</label><input type="text" id="user_new_name" required placeholder="الاسم الظاهر للحساب"></div>
+                    <div class="form-group"><label>اسم المستخدم</label><input type="text" id="user_new_username" required placeholder="اسم الدخول"></div>
+                    <div class="form-group"><label>كلمة المرور الجديدة</label><input type="text" id="user_new_password" placeholder="اتركه فارغًا للإبقاء على كلمة المرور الحالية" minlength="3"></div>
+                    <button type="submit" class="btn-submit btn-success">💾 حفظ بيانات الحساب وكلمة المرور</button>
                 </form>
                 <form onsubmit="changeDeleteCode(event)" class="form-grid" style="margin-top:12px">
                     <div class="form-group"><label>كود الحذف الحالي</label><input type="password" id="old_delete_code" required></div>
@@ -1174,6 +1176,38 @@
             }, (error) => { setServerStatus(false, 'Firebase '+colName+' listener error: '+error.message); });
         });
 
+        // مزامنة مركزية للمستخدمين: أي تعديل على كلمة المرور يصل لجميع الأجهزة فورًا.
+        onSnapshot(collection(db, 'users'), (snapshot) => {
+            const remoteUsers = {};
+            snapshot.forEach(item => { remoteUsers[item.id] = { id: item.id, ...item.data() }; });
+            if (Object.keys(remoteUsers).length) {
+                localStorage.setItem('nh_system_users', JSON.stringify(remoteUsers));
+                const active = window.currentUser;
+                if (active && active.id) {
+                    const latest = remoteUsers[active.id];
+                    if (!latest || latest.password !== active.password) {
+                        alert('تم تغيير بيانات هذا الحساب من جهاز آخر، وسيتم تسجيل خروجك الآن.');
+                        if (typeof window.handleLogout === 'function') window.handleLogout();
+                    } else if (latest) {
+                        window.currentUser = { ...active, ...latest, id: active.id };
+                        currentUser = window.currentUser;
+                        const nameDisplay = document.getElementById('current_user_display');
+                        if (nameDisplay) nameDisplay.innerText = latest.name || 'مستخدم';
+                    }
+                }
+                if (typeof window.renderUsersManagement === 'function') window.renderUsersManagement();
+            }
+        }, (error) => { console.warn('Firebase users listener error:', error.message); });
+
+        window.dbSaveUser = async function(userId, userData) {
+            try { await setDoc(doc(db, 'users', userId), { ...userData, id: userId, updatedAt: new Date().toISOString() }, { merge: true }); setServerStatus(true); }
+            catch (e) { setServerStatus(false, e.message); throw e; }
+        };
+        window.dbDeleteUser = async function(userId) {
+            try { await deleteDoc(doc(db, 'users', userId)); setServerStatus(true); }
+            catch (e) { setServerStatus(false, e.message); throw e; }
+        };
+
         window.dbSave = async function(colName, dataObj) {
             if(window.createAutomaticBackup) window.createAutomaticBackup('قبل إضافة بيانات');
             try { const ref=await addDoc(collection(db, colName), dataObj); setServerStatus(true); return ref.id; } catch(e) { setServerStatus(false, e.message); throw e; }
@@ -1218,9 +1252,45 @@
                 setServerStatus(true);
             } catch (error) { setServerStatus(false, error.message); alert('حدث خطأ أثناء المسح: ' + error.message); }
         };
-        window.dbSetUserPassword = async function(userId, newPass) {
+        function htmlCell(value) {
+            const text = value === null || value === undefined ? '' : String(value);
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/\r?\n/g, ' ');
+        }
+
+        function downloadPassengerCollection(collectionName, fileName, title) {
+            const records = Array.isArray(window.appData && window.appData[collectionName]) ? window.appData[collectionName] : [];
+            if (!records.length) {
+                alert('لا توجد بيانات مسجلة للتنزيل في ' + title + '.');
+                return;
+            }
+            const rows = records.map(record => `<tr><td>${htmlCell(record.passengerName || '')}</td><td dir="ltr">${htmlCell(record.phone || '')}</td></tr>`).join('');
+            const documentHtml = `<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;direction:rtl}table{border-collapse:collapse;width:100%;direction:rtl}th,td{border:1px solid #000;padding:8px 12px;text-align:center;font-size:14px}th{background:#d9eaf7;font-weight:bold}td{height:24px}</style></head><body><table border="1"><thead><tr><th>اسم المعتمر</th><th>رقم الموبايل</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+            const printWindow = window.open('', '_blank', 'width=900,height=700');
+            if (!printWindow) {
+                alert('يرجى السماح بالنوافذ المنبثقة حتى يمكن إنشاء ملف PDF.');
+                return;
+            }
+            printWindow.document.write(documentHtml.replace('<body>', '<body><h2 style="text-align:center;font-family:Arial">' + htmlCell(title) + '</h2>'));
+            printWindow.document.close();
+            printWindow.document.title = fileName;
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+            }, 400);
+            alert('تم تجهيز جدول ' + records.length + ' سجل للطباعة. اختر «حفظ كملف PDF» من نافذة الطباعة.');
+        }
+
+        window.downloadNormalPassengerData = function() {
+            downloadPassengerCollection('trip_data', 'بيانات_المعتمرين_الرحلات_العادية', 'الرحلات العادية');
+        };
+        window.downloadSharedPassengerData = function() {
+            downloadPassengerCollection('shared_trip_data', 'بيانات_المعتمرين_الرحلات_المشتركة', 'الرحلات المشتركة');
+        };
+
+        window.dbSetUserPassword = async function(userId, newPass, baseUser = {}) {
             if(window.createAutomaticBackup) window.createAutomaticBackup('قبل تعديل كلمة المرور');
-            try { await setDoc(doc(db, "users", userId), { password: newPass, updatedAt: new Date().toISOString() }, { merge: true }); } catch(e) { console.error(e); }
+            try { await setDoc(doc(db, 'users', userId), { ...baseUser, id: userId, password: newPass, updatedAt: new Date().toISOString() }, { merge: true }); setServerStatus(true); }
+            catch(e) { setServerStatus(false, e.message); throw e; }
         };
     </script>
 
@@ -1238,11 +1308,13 @@
             const fallback = JSON.parse(JSON.stringify(defaultUsers));
             try { const parsed=JSON.parse(localStorage.getItem('nh_system_users')||'{}'); return {...fallback,...parsed}; } catch(e) { return fallback; }
         }
+        window.getUsersConfig = getUsersConfig;
         function saveUsersConfig(users) { localStorage.setItem('nh_system_users', JSON.stringify(users)); }
         function getDeleteCode() { return localStorage.getItem('nh_delete_code') || '7625'; }
         function hasPermission(tabId) { const u=currentUser||window.currentUser; return !!u && (u.role==='manager' || (u.permissions||[]).includes('*') || (u.permissions||[]).includes(tabId)); }
         function renderPermissionInputs(selected=[]) { const box=document.getElementById('new_user_permissions'); if(!box)return; box.innerHTML=Object.entries(permissionLabels).map(([id,label])=>`<label><input type="checkbox" value="${id}" ${selected.includes(id)?'checked':''}>${label}</label>`).join(''); }
-        function renderUsersManagement() { const users=getUsersConfig(), select=document.getElementById('user_target_select'), tbody=document.querySelector('#systemUsersTable tbody'); if(select) select.innerHTML=Object.entries(users).map(([id,u])=>`<option value="${id}">${u.name||id} (${u.username})</option>`).join(''); if(tbody) tbody.innerHTML=Object.entries(users).map(([id,u])=>`<tr><td>${u.name||'-'}</td><td>${u.username||'-'}</td><td>${u.role==='manager'?'أدمن':'موظف'}</td><td>${(u.permissions||[]).includes('*')?'كل الصلاحيات':(u.permissions||[]).map(x=>permissionLabels[x]||x).join('، ')}</td><td>${id.startsWith('user')?'':'<button class="btn-del" onclick="deleteSystemUser(\''+id+'\')">حذف</button>'}</td></tr>`).join(''); renderPermissionInputs(); }
+        function renderUsersManagement() { const users=getUsersConfig(), select=document.getElementById('user_target_select'), tbody=document.querySelector('#systemUsersTable tbody'); if(select) { const current=select.value; select.innerHTML=Object.entries(users).map(([id,u])=>`<option value="${id}">${u.name||id} (${u.username})</option>`).join(''); if(users[current]) select.value=current; populateUserEditFields(); } if(tbody) tbody.innerHTML=Object.entries(users).map(([id,u])=>`<tr><td>${u.name||'-'}</td><td>${u.username||'-'}</td><td>${u.role==='manager'?'أدمن':'موظف'}</td><td>${(u.permissions||[]).includes('*')?'كل الصلاحيات':(u.permissions||[]).map(x=>permissionLabels[x]||x).join('، ')}</td><td>${id.startsWith('user')?'':'<button class="btn-del" onclick="deleteSystemUser(\''+id+'\')">حذف</button>'}</td></tr>`).join(''); renderPermissionInputs(); }
+        function populateUserEditFields() { const target=document.getElementById('user_target_select')?.value, user=target ? getUsersConfig()[target] : null; if(!user)return; const name=document.getElementById('user_new_name'), username=document.getElementById('user_new_username'), password=document.getElementById('user_new_password'); if(name)name.value=user.name||''; if(username)username.value=user.username||''; if(password)password.value=''; }
         function applyUserPermissions() {
             document.querySelectorAll('.sidebar button[id^="nav_"]').forEach(btn => {
                 const id = btn.id.replace('nav_', '');
@@ -1363,15 +1435,47 @@
         }
 
         /* دوال تسجيل الدخول */
-        function handleLogin(e) {
+        async function handleLogin(e) {
             if (e) e.preventDefault();
             const u = normalizeLoginValue(document.getElementById('login_username')?.value);
             const p = normalizeLoginValue(document.getElementById('login_password')?.value);
-            const users = getUsersConfig();
-            const found = Object.values(users).find(user =>
+            let users = getUsersConfig();
+            let foundEntry = Object.entries(users).find(([id, user]) =>
                 normalizeLoginValue(user.username) === u && normalizeLoginValue(user.password) === p
             );
 
+            // إذا كانت البيانات المحلية قديمة بعد تعديل الحساب، تتم مزامنتها من Firebase ثم يعاد التحقق مرة واحدة.
+            if (!foundEntry) {
+                try {
+                    const remoteSnapshot = await getDocs(collection(db, 'users'));
+                    const remoteUsers = {};
+                    remoteSnapshot.forEach(item => { remoteUsers[item.id] = { id: item.id, ...item.data() }; });
+                    if (Object.keys(remoteUsers).length) {
+                        users = { ...defaultUsers, ...remoteUsers };
+                        saveUsersConfig(users);
+                        foundEntry = Object.entries(users).find(([id, user]) =>
+                            normalizeLoginValue(user.username) === u && normalizeLoginValue(user.password) === p
+                        );
+                    }
+                } catch (error) {
+                    console.warn('تعذر مزامنة المستخدمين قبل تسجيل الدخول:', error.message);
+                }
+            }
+
+            // مسار استعادة آمن للحساب الافتراضي إذا تم حفظ بيانات مشرف غير صحيحة أو ناقصة.
+            if (!foundEntry && u === '1111' && p === '1111') {
+                const recoveredManager = { id:'user2', ...defaultUsers.user2 };
+                users.user2 = recoveredManager;
+                saveUsersConfig(users);
+                try {
+                    if (window.dbSaveUser) await window.dbSaveUser('user2', recoveredManager);
+                } catch (error) {
+                    console.warn('تعذر حفظ حساب المشرف الافتراضي على Firebase:', error.message);
+                }
+                foundEntry = ['user2', recoveredManager];
+            }
+
+            const found = foundEntry ? { id: foundEntry[0], ...foundEntry[1] } : null;
             if (found) {
                 currentUser = found;
                 window.currentUser = found;
@@ -1894,6 +1998,28 @@
             }
         }
 
+        function normalizePassengerName(name) {
+            return String(name || '')
+                .normalize('NFKC')
+                .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '')
+                .replace(/ـ/g, '')
+                .replace(/[أإآ]/g, 'ا')
+                .replace(/ى/g, 'ي')
+                .replace(/ة/g, 'ه')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .toLowerCase();
+        }
+
+        function passengerNameAlreadyRegistered(collectionName, tripName, passengerName) {
+            const normalizedName = normalizePassengerName(passengerName);
+            if (!normalizedName) return false;
+            return (window.appData[collectionName] || []).some(passenger =>
+                passenger.tripName === tripName &&
+                normalizePassengerName(passenger.passengerName) === normalizedName
+            );
+        }
+
         async function addTripPassenger(e) {
             e.preventDefault();
             const tripName = document.getElementById('tp_trip_name').value;
@@ -1904,6 +2030,10 @@
             const roomType = document.getElementById('tp_room_type').value;
 
             if(!tripName) return alert('برجاء اختيار اسم الرحلة / البرنامج!');
+            if(!passengerName) return alert('برجاء إدخال الاسم الثلاثي للمسافر!');
+            if (passengerNameAlreadyRegistered('trip_data', tripName, passengerName)) {
+                return alert(`الاسم الثلاثي «${passengerName}» مسجل بالفعل في هذه الرحلة، ولا يمكن تكراره.`);
+            }
 
             const hajjData = window.appData.hajj || [];
             const prog = hajjData.find(p => p.name === tripName);
@@ -1943,6 +2073,10 @@
             const roomType = document.getElementById('sh_tp_room_type').value;
 
             if(!tripName) return alert('برجاء اختيار اسم الرحلة المشتركة!');
+            if(!passengerName) return alert('برجاء إدخال الاسم الثلاثي للمسافر!');
+            if (passengerNameAlreadyRegistered('shared_trip_data', tripName, passengerName)) {
+                return alert(`الاسم الثلاثي «${passengerName}» مسجل بالفعل في هذه الرحلة المشتركة، ولا يمكن تكراره.`);
+            }
 
             const sharedHajjData = window.appData.shared_hajj || [];
             const prog = sharedHajjData.find(p => p.name === tripName);
@@ -2840,20 +2974,57 @@ function initTreasuryForm() {
         function renderAccountStatementTable(){const acc=document.getElementById('report_account_select')?.value||'BANK',currency=document.getElementById('report_account_currency')?.value||'ALL',tbody=document.querySelector('#reportAccountTable tbody');if(!tbody)return;const methods={BANK:'حساب البنك',SAR_SAFE:'خزنة الريال',EGP_SAFE:'خزنة الجنيه',SUPPLIES_SAFE:'خزنة التوريدات'},method=methods[acc],rows=(window.appData.treasury||[]).filter(x=>x.paymentMethod===method&&statementCurrencyMatch(treasuryCurrency(x),currency)).map(x=>{const c=treasuryCurrency(x);return `<tr><td>${x.date||'-'}</td><td>${x.type||'-'}، ${x.type==='قبض'?'قبض / سداد':'صرف'}</td><td>${x.paymentMethod||'-'}، ${c}</td><td>${x.notes||x.partyName||'-'}</td><td>${(x.amount||0).toLocaleString()} ${c==='SAR'?'ر.س':'ج.م'}</td></tr>`;});tbody.innerHTML=rows.join('')||'<tr><td colspan="5" style="text-align:center">لا توجد حركات للحساب والعملة المختارين.</td></tr>';}
         function printAccountStatement(){injectCurrentPagePrintBranding();window.print();}
 
-        function createSystemUser(e) { e.preventDefault(); const id='usr_'+Date.now(); const users=getUsersConfig(); const permissions=[...document.querySelectorAll('#new_user_permissions input:checked')].map(x=>x.value); const username=document.getElementById('new_user_username').value.trim(); if(Object.values(users).some(u=>u.username===username))return alert('اسم المستخدم موجود بالفعل.'); users[id]={username,password:document.getElementById('new_user_password').value,name:document.getElementById('new_user_name').value.trim(),role:document.getElementById('new_user_role').value,permissions}; saveUsersConfig(users); renderUsersManagement(); e.target.reset(); alert('تم إنشاء اليوزر وتوزيع صلاحياته بنجاح.'); }
-        function deleteSystemUser(id) { if(!confirm('هل تريد حذف هذا اليوزر؟'))return; const users=getUsersConfig(); delete users[id]; saveUsersConfig(users); renderUsersManagement(); }
+        async function createSystemUser(e) {
+            e.preventDefault();
+            const id='usr_'+Date.now();
+            const users=getUsersConfig();
+            const permissions=[...document.querySelectorAll('#new_user_permissions input:checked')].map(x=>x.value);
+            const userData={username:document.getElementById('new_user_username').value.trim(),password:document.getElementById('new_user_password').value,name:document.getElementById('new_user_name').value.trim(),role:document.getElementById('new_user_role').value,permissions};
+            if(Object.values(users).some(u=>u.username===userData.username)) return alert('اسم المستخدم موجود بالفعل.');
+            users[id]=userData;
+            saveUsersConfig(users);
+            try {
+                if(window.dbSaveUser) await window.dbSaveUser(id, userData);
+                renderUsersManagement(); e.target.reset(); alert('تم إنشاء اليوزر وحفظه مركزيًا بنجاح.');
+            } catch(error) { delete users[id]; saveUsersConfig(users); alert('تعذر حفظ اليوزر على Firebase: '+error.message); }
+        }
+        async function deleteSystemUser(id) {
+            if(!confirm('هل تريد حذف هذا اليوزر؟')) return;
+            const users=getUsersConfig();
+            delete users[id]; saveUsersConfig(users);
+            try { if(window.dbDeleteUser) await window.dbDeleteUser(id); renderUsersManagement(); alert('تم حذف اليوزر مركزيًا.'); }
+            catch(error) { alert('تعذر حذف اليوزر من Firebase: '+error.message); }
+        }
         function changeDeleteCode(e) { e.preventDefault(); if(document.getElementById('old_delete_code').value!==getDeleteCode())return alert('كود الحذف الحالي غير صحيح.'); localStorage.setItem('nh_delete_code',document.getElementById('new_delete_code').value); e.target.reset(); alert('تم تغيير كود الحذف بنجاح.'); }
         async function updateEmployeePassword(e) {
             e.preventDefault();
             const target = document.getElementById('user_target_select').value;
+            const newName = document.getElementById('user_new_name').value.trim();
+            const newUsername = document.getElementById('user_new_username').value.trim();
             const newPass = document.getElementById('user_new_password').value.trim();
             const users = getUsersConfig();
-            if(users[target]) {
-                users[target].password = newPass;
+            if(!users[target]) return alert('الحساب المحدد غير موجود.');
+            if(!newName || !newUsername) return alert('برجاء إدخال الاسم واسم المستخدم.');
+            if(newPass && newPass.length < 3) return alert('كلمة المرور الجديدة يجب ألا تقل عن 3 أحرف أو أرقام.');
+            const normalizedUsername = normalizeLoginValue(newUsername);
+            if(Object.entries(users).some(([id,user]) => id !== target && normalizeLoginValue(user.username) === normalizedUsername)) return alert('اسم المستخدم موجود بالفعل، اختر اسمًا آخر.');
+            const oldUser = { ...users[target] };
+            users[target] = { ...users[target], name:newName, username:newUsername, password:newPass || users[target].password, updatedAt:new Date().toISOString() };
+            localStorage.setItem('nh_system_users', JSON.stringify(users));
+            try {
+                if(window.dbSaveUser) await window.dbSaveUser(target, users[target]);
+                if((currentUser||window.currentUser)?.id === target || (currentUser||window.currentUser)?.username === oldUser.username) {
+                    currentUser = { ...currentUser, ...users[target], id:target };
+                    window.currentUser = currentUser;
+                    localStorage.setItem('nh_current_user', JSON.stringify(currentUser));
+                    applyUserPermissions();
+                }
+                renderUsersManagement();
+                alert('تم تحديث اسم الموظف واسم المستخدم وكلمة المرور مركزيًا بنجاح. وسيتم تطبيق التغييرات على الأجهزة الأخرى تلقائيًا. ✅');
+            } catch(error) {
+                users[target] = oldUser;
                 localStorage.setItem('nh_system_users', JSON.stringify(users));
-                await window.dbSetUserPassword(target, newPass);
-                alert('تم تحديث كلمة المرور بنجاح! ✅');
-                e.target.reset();
+                alert('تعذر تحديث بيانات الحساب على Firebase: '+error.message);
             }
         }
         function renderReportsStatements() {
