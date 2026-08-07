@@ -1181,6 +1181,14 @@
             const remoteUsers = {};
             snapshot.forEach(item => { remoteUsers[item.id] = { id: item.id, ...item.data() }; });
             if (Object.keys(remoteUsers).length) {
+                if (remoteUsers.user1) {
+                    delete remoteUsers.user1;
+                    deleteDoc(doc(db, 'users', 'user1')).catch(error => console.warn('تعذر حذف حساب الموظفين القديم:', error.message));
+                }
+                if (!remoteUsers.user2 || (remoteUsers.user2.username === '1111' && remoteUsers.user2.password === '1111')) {
+                    remoteUsers.user2 = { id:'user2', ...defaultUsers.user2 };
+                    setDoc(doc(db, 'users', 'user2'), { ...defaultUsers.user2, id:'user2', updatedAt:new Date().toISOString() }, { merge:true }).catch(error => console.warn('تعذر تحديث حساب المشرف الافتراضي:', error.message));
+                }
                 localStorage.setItem('nh_system_users', JSON.stringify(remoteUsers));
                 const active = window.currentUser;
                 if (active && active.id) {
@@ -1300,16 +1308,28 @@
         let currentUser = null;
 
         const defaultUsers = {
-            user1: { username: "0000", password: "0000", role: "employee", name: "الموظفين", permissions: ['dashboard','hajj','trip_data','shared_hajj','shared_trip_data'] },
-            user2: { username: "1111", password: "1111", role: "manager", name: "المشرف", permissions: ['*'] }
+            user2: { username: "fathi", password: "7625", role: "manager", name: "المشرف", permissions: ['*'] }
         };
         const permissionLabels = { dashboard:'الشاشة الرئيسية', hotels:'حجز الفنادق', hajj:'تسعير الحج والعمرة', trip_data:'الرحلات الأساسية والتسكين', shared_hajj:'تسعير الرحلات المشتركة', shared_trip_data:'الرحلات المشتركة والتسكين', invoices_sales:'فواتير المبيعات', invoices_purchases:'فواتير المشتريات', treasury:'الخزنة والحسابات', reports:'التقارير', report_accounts:'كشوف الحسابات', users_management:'إدارة الموظفين', trip_supplies:'تصفية الرحلات' };
+        function enforceDefaultAccounts(users) {
+            const cleaned = { ...(users || {}) };
+            delete cleaned.user1;
+            if(!cleaned.user2 || (cleaned.user2.username === '1111' && cleaned.user2.password === '1111')) {
+                cleaned.user2 = { ...defaultUsers.user2 };
+            }
+            return cleaned;
+        }
         function getUsersConfig() {
             const fallback = JSON.parse(JSON.stringify(defaultUsers));
-            try { const parsed=JSON.parse(localStorage.getItem('nh_system_users')||'{}'); return {...fallback,...parsed}; } catch(e) { return fallback; }
+            try {
+                const parsed=JSON.parse(localStorage.getItem('nh_system_users')||'{}');
+                const cleaned = enforceDefaultAccounts({...fallback,...parsed});
+                localStorage.setItem('nh_system_users', JSON.stringify(cleaned));
+                return cleaned;
+            } catch(e) { return fallback; }
         }
         window.getUsersConfig = getUsersConfig;
-        function saveUsersConfig(users) { localStorage.setItem('nh_system_users', JSON.stringify(users)); }
+        function saveUsersConfig(users) { localStorage.setItem('nh_system_users', JSON.stringify(enforceDefaultAccounts(users))); }
         function getDeleteCode() { return localStorage.getItem('nh_delete_code') || '7625'; }
         function hasPermission(tabId) { const u=currentUser||window.currentUser; return !!u && (u.role==='manager' || (u.permissions||[]).includes('*') || (u.permissions||[]).includes(tabId)); }
         function renderPermissionInputs(selected=[]) { const box=document.getElementById('new_user_permissions'); if(!box)return; box.innerHTML=Object.entries(permissionLabels).map(([id,label])=>`<label><input type="checkbox" value="${id}" ${selected.includes(id)?'checked':''}>${label}</label>`).join(''); }
@@ -1447,7 +1467,8 @@
                 const remoteUsers = {};
                 remoteSnapshot.forEach(item => { remoteUsers[item.id] = { id: item.id, ...item.data() }; });
                 if (Object.keys(remoteUsers).length) {
-                    users = { ...defaultUsers, ...remoteUsers };
+                    delete remoteUsers.user1;
+                    users = enforceDefaultAccounts({ ...defaultUsers, ...remoteUsers });
                     saveUsersConfig(users);
                     remoteLoaded = true;
                 }
@@ -1466,7 +1487,7 @@
             }
 
             // مسار استعادة آمن للحساب الافتراضي إذا تم حفظ بيانات مشرف غير صحيحة أو ناقصة.
-            if (!foundEntry && u === '1111' && p === '1111') {
+            if (!foundEntry && u === 'fathi' && p === '7625') {
                 const recoveredManager = { id:'user2', ...defaultUsers.user2 };
                 users.user2 = recoveredManager;
                 saveUsersConfig(users);
