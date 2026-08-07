@@ -1440,26 +1440,29 @@
             const u = normalizeLoginValue(document.getElementById('login_username')?.value);
             const p = normalizeLoginValue(document.getElementById('login_password')?.value);
             let users = getUsersConfig();
+            let remoteLoaded = false;
+            // Firebase هو المصدر الأساسي حتى لا يقبل جهاز كلمة المرور القديمة الموجودة في التخزين المحلي.
+            try {
+                const remoteSnapshot = await getDocs(collection(db, 'users'));
+                const remoteUsers = {};
+                remoteSnapshot.forEach(item => { remoteUsers[item.id] = { id: item.id, ...item.data() }; });
+                if (Object.keys(remoteUsers).length) {
+                    users = { ...defaultUsers, ...remoteUsers };
+                    saveUsersConfig(users);
+                    remoteLoaded = true;
+                }
+            } catch (error) {
+                console.warn('تعذر قراءة المستخدمين من Firebase قبل تسجيل الدخول:', error.message);
+            }
             let foundEntry = Object.entries(users).find(([id, user]) =>
                 normalizeLoginValue(user.username) === u && normalizeLoginValue(user.password) === p
             );
-
-            // إذا كانت البيانات المحلية قديمة بعد تعديل الحساب، تتم مزامنتها من Firebase ثم يعاد التحقق مرة واحدة.
-            if (!foundEntry) {
-                try {
-                    const remoteSnapshot = await getDocs(collection(db, 'users'));
-                    const remoteUsers = {};
-                    remoteSnapshot.forEach(item => { remoteUsers[item.id] = { id: item.id, ...item.data() }; });
-                    if (Object.keys(remoteUsers).length) {
-                        users = { ...defaultUsers, ...remoteUsers };
-                        saveUsersConfig(users);
-                        foundEntry = Object.entries(users).find(([id, user]) =>
-                            normalizeLoginValue(user.username) === u && normalizeLoginValue(user.password) === p
-                        );
-                    }
-                } catch (error) {
-                    console.warn('تعذر مزامنة المستخدمين قبل تسجيل الدخول:', error.message);
-                }
+            // عند انقطاع الاتصال فقط نستخدم آخر نسخة محلية محفوظة.
+            if (!remoteLoaded) {
+                users = getUsersConfig();
+                foundEntry = Object.entries(users).find(([id, user]) =>
+                    normalizeLoginValue(user.username) === u && normalizeLoginValue(user.password) === p
+                );
             }
 
             // مسار استعادة آمن للحساب الافتراضي إذا تم حفظ بيانات مشرف غير صحيحة أو ناقصة.
@@ -3009,21 +3012,28 @@ function initTreasuryForm() {
             const normalizedUsername = normalizeLoginValue(newUsername);
             if(Object.entries(users).some(([id,user]) => id !== target && normalizeLoginValue(user.username) === normalizedUsername)) return alert('اسم المستخدم موجود بالفعل، اختر اسمًا آخر.');
             const oldUser = { ...users[target] };
+            const activeBeforeUpdate = currentUser || window.currentUser;
+            const isActiveAccount = !!activeBeforeUpdate && (activeBeforeUpdate.id === target || activeBeforeUpdate.username === oldUser.username);
             users[target] = { ...users[target], name:newName, username:newUsername, password:newPass || users[target].password, updatedAt:new Date().toISOString() };
             localStorage.setItem('nh_system_users', JSON.stringify(users));
+            // تحديث الجلسة الحالية قبل الكتابة المركزية لمنع مستمع Firebase من إخراج هذا الجهاز أثناء الحفظ.
+            if(isActiveAccount) {
+                currentUser = { ...activeBeforeUpdate, ...users[target], id:target };
+                window.currentUser = currentUser;
+                applyUserPermissions();
+            }
             try {
                 if(window.dbSaveUser) await window.dbSaveUser(target, users[target]);
-                if((currentUser||window.currentUser)?.id === target || (currentUser||window.currentUser)?.username === oldUser.username) {
-                    currentUser = { ...currentUser, ...users[target], id:target };
-                    window.currentUser = currentUser;
-                    localStorage.setItem('nh_current_user', JSON.stringify(currentUser));
-                    applyUserPermissions();
-                }
                 renderUsersManagement();
                 alert('تم تحديث اسم الموظف واسم المستخدم وكلمة المرور مركزيًا بنجاح. وسيتم تطبيق التغييرات على الأجهزة الأخرى تلقائيًا. ✅');
             } catch(error) {
                 users[target] = oldUser;
                 localStorage.setItem('nh_system_users', JSON.stringify(users));
+                if(isActiveAccount) {
+                    currentUser = { ...activeBeforeUpdate, id:target };
+                    window.currentUser = currentUser;
+                    applyUserPermissions();
+                }
                 alert('تعذر تحديث بيانات الحساب على Firebase: '+error.message);
             }
         }
