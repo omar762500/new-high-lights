@@ -58,6 +58,17 @@
 
         /* Navigation Sidebar */
         .sidebar { width: 280px; background-color: var(--primary); color: white; padding: 20px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; overflow-y: auto; }
+        .mobile-menu-toggle { display: none; background: var(--primary); color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: bold; }
+        @media (max-width: 800px) {
+            body { display: block; min-height: 100vh; }
+            .sidebar { position: fixed; top: 0; right: 0; bottom: 0; width: min(84vw, 320px); z-index: 10000; transform: translateX(105%); transition: transform .25s ease; box-shadow: -8px 0 24px rgba(0,0,0,.25); }
+            .sidebar.mobile-open { transform: translateX(0); }
+            .main-content { width: 100%; min-height: 100vh; padding: 12px; }
+            .mobile-menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+            .top-bar { gap: 8px; padding: 10px; }
+            .top-bar > div:first-child { min-width: 0; flex-wrap: wrap; }
+            .top-bar > div:last-child { flex-wrap: wrap; justify-content: flex-end; }
+        }
         .sidebar .brand { font-size: 20px; font-weight: bold; text-align: center; margin-bottom: 15px; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 12px; }
         .nav-btn { background: none; border: none; color: #94a3b8; padding: 10px 14px; text-align: right; font-size: 13.5px; cursor: pointer; border-radius: 8px; transition: 0.2s; width: 100%; display: flex; align-items: center; gap: 8px; }
         .nav-btn:hover:not(.blur-restricted), .nav-btn.active:not(.blur-restricted) { background-color: var(--accent); color: white; font-weight: bold; }
@@ -227,6 +238,7 @@
         <!-- الشريط العلوي ومعلومات الحساب -->
         <div class="top-bar">
             <div style="display:flex;align-items:center;gap:12px">
+                <button id="mobileMenuToggle" class="mobile-menu-toggle" type="button" onclick="toggleMobileSidebar()">☰ الخيارات</button>
                 <span id="server_connection_status" style="font-size:12px;color:#d97706;font-weight:bold">⏳ جاري الاتصال بالسيرفر...</span>
                 <b>مرحباً بك: </b><span id="current_user_display" style="color:var(--accent); font-weight:bold;">---</span> 
                 (<span id="current_role_display" style="color:#d97706; font-size:12px; font-weight:bold;">---</span>)
@@ -1389,6 +1401,24 @@
         window.handleLogin = handleLogin;
         window.handleLogout = handleLogout;
 
+        function closeMobileSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) sidebar.classList.remove('mobile-open');
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) sidebar.classList.toggle('mobile-open');
+        }
+
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggle = document.getElementById('mobileMenuToggle');
+            if (sidebar && sidebar.classList.contains('mobile-open') && !sidebar.contains(event.target) && event.target !== toggle) {
+                closeMobileSidebar();
+            }
+        });
+
         function showTab(tabId, btn) {
             if (!hasPermission(tabId)) { alert('ليس لديك صلاحية للوصول إلى هذه الشاشة.'); return; }
             document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
@@ -1396,6 +1426,7 @@
             const panel = document.getElementById(tabId);
             if (panel) panel.classList.add('active');
             if (btn) btn.classList.add('active');
+            closeMobileSidebar();
         }
 
         function toggleDarkMode() {
