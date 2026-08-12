@@ -177,6 +177,21 @@
         .permission-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:8px; }
         .permission-grid label { display:flex; flex-direction:row; align-items:center; gap:6px; padding:8px; border:1px solid var(--border-color); border-radius:6px; background:var(--table-header-bg); font-size:12px; }
         .permission-grid input { width:auto; }
+
+        /* تنسيق حقول بنود فاتورة المبيعات لتمييز العدد والليالي والسعر */
+        .sales-item-fields { display:grid; grid-template-columns:repeat(6, minmax(82px, 1fr)); gap:8px; align-items:end; }
+        .sales-item-field { display:flex; flex-direction:column; gap:4px; min-width:0; }
+        .sales-item-field label { font-size:11px; font-weight:800; color:var(--accent); white-space:nowrap; text-align:right; }
+        .sales-item-field input, .sales-item-field select { min-width:0; padding:8px 6px; text-align:center; }
+        .program-item-fields { display:grid; grid-template-columns:minmax(180px, 2fr) repeat(2, minmax(105px, 1fr)); gap:8px; align-items:end; }
+        .program-item-fields.secondary { grid-template-columns:repeat(3, minmax(125px, 1fr)); margin-top:8px; }
+        .program-details-container { border:1px solid var(--accent); }
+        .program-details-container > .program-title { color:var(--accent); font-weight:800; font-size:12px; margin-bottom:2px; }
+        @media (max-width: 900px) {
+            .sales-item-fields, .program-item-fields, .program-item-fields.secondary { grid-template-columns:repeat(2, minmax(110px, 1fr)); }
+        }
+        /* تقليل تكلفة رسم الجداول الطويلة داخل المتصفح */
+        .data-table-container { content-visibility:auto; contain-intrinsic-size:420px; }
 </style>
 </head>
 <body>
@@ -703,14 +718,10 @@
                         <table id="salesItemsTable">
                             <thead>
                                 <tr>
-                                    <th>البيان / نوع الخدمة</th>
-                                    <th>الفئة العمرية</th>
-                                    <th>العدد</th>
-                                    <th>العملة</th>
-                                    <th>سعر الفرد</th>
-                                    <th>سعر الصرف للريال</th>
-                                    <th>الإجمالي الفرعي</th>
-                                    <th>حذف</th>
+                                    <th style="width:180px;">البيان / نوع الخدمة</th>
+                                    <th>تفاصيل البند / بيانات البرنامج والحج والعمرة</th>
+                                    <th style="width:120px;">الإجمالي الفرعي</th>
+                                    <th style="width:60px;">حذف</th>
                                 </tr>
                             </thead>
                             <tbody id="salesItemsTbody"></tbody>
@@ -771,6 +782,7 @@
                                     <th>العدد</th>
                                     <th>السعر</th>
                                     <th>العملة</th>
+                                    <th>عدد الليالي</th>
                                     <th>سعر الصرف للريال (إن وجد)</th>
                                     <th>الإجمالي الفرعي</th>
                                     <th>حذف</th>
@@ -1161,10 +1173,17 @@
 
         let refreshQueued = false;
         let loadedCollections = new Set();
+        let lastRefreshAt = 0;
         function queueRefresh() {
             if(refreshQueued) return;
             refreshQueued = true;
-            setTimeout(() => { refreshQueued = false; refreshAll(); }, 80);
+            const run = () => {
+                refreshQueued = false;
+                lastRefreshAt = Date.now();
+                refreshAll();
+            };
+            if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(run, 60));
+            else setTimeout(run, 100);
         }
         function setServerStatus(ok, message) {
             const el=document.getElementById('server_connection_status');
@@ -1379,17 +1398,27 @@
                 .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
         }
 
+        let backupTimer = null;
+        let backupInProgress = false;
         function createAutomaticBackup(reason) {
-            try {
-                const payload = { ...(window.appData || {}) };
-                payload.__automaticBackup = { reason: reason || 'قبل التعديل', createdAt: new Date().toISOString() };
-                localStorage.setItem('nh_auto_backup_latest', JSON.stringify(payload));
-                localStorage.setItem('nh_auto_backup_latest_at', payload.__automaticBackup.createdAt);
-                return true;
-            } catch(error) {
-                console.warn('تعذر إنشاء النسخة الاحتياطية التلقائية', error);
-                return false;
-            }
+            /* تأجيل النسخة وتجميع الطلبات يمنع تجميد الواجهة عند حفظ سجلات متتابعة. */
+            if (backupTimer) clearTimeout(backupTimer);
+            backupTimer = setTimeout(() => {
+                if (backupInProgress) return;
+                backupInProgress = true;
+                try {
+                    const payload = { ...(window.appData || {}) };
+                    payload.__automaticBackup = { reason: reason || 'قبل التعديل', createdAt: new Date().toISOString() };
+                    localStorage.setItem('nh_auto_backup_latest', JSON.stringify(payload));
+                    localStorage.setItem('nh_auto_backup_latest_at', payload.__automaticBackup.createdAt);
+                } catch(error) {
+                    console.warn('تعذر إنشاء النسخة الاحتياطية التلقائية', error);
+                } finally {
+                    backupInProgress = false;
+                    backupTimer = null;
+                }
+            }, 350);
+            return true;
         }
         window.createAutomaticBackup = createAutomaticBackup;
 
@@ -1416,28 +1445,32 @@
             }
         });
 
-        function refreshAll() {
-            renderHotelBookingsTable();
-            renderHajjTable();
-            renderSharedHajjTable();
-            updateTripSelects();
-            updateSharedTripSelects();
-            updateTripSupplySelects();
-            updateTotalTripSelect();
-            updateRoomFilterTripSelect();
-            renderTripTables();
-            renderSharedTripTables();
-            renderDealersTable();
-            renderSalesInvoicesTable();
-            renderPurchaseInvoicesTable();
-            renderTreasuryTable();
-            renderTripSuppliesTable();
-            renderDashboardExtraCards();
-            renderReportsStatements();
-            renderHajjTable(); renderSharedHajjTable(); updateTotalTripSelect();
-            if(document.getElementById('reports').classList.contains('active')) {
-                renderReportsStatements();
+        function renderVisibleData() {
+            const activeId = document.querySelector('.tab-panel.active')?.id || 'dashboard';
+            switch (activeId) {
+                case 'dashboard': renderDashboardExtraCards(); break;
+                case 'hotels': renderHotelBookingsTable(); break;
+                case 'hajj': renderHajjTable(); break;
+                case 'trip_data': updateTripSelects(); updateRoomFilterTripSelect(); renderTripTables(); break;
+                case 'shared_hajj': renderSharedHajjTable(); break;
+                case 'shared_trip_data': updateSharedTripSelects(); renderSharedTripTables(); break;
+                case 'dealers_page': renderDealersTable(); updateTreasuryPartyTypes(); populatePartyNames(); break;
+                case 'invoices_sales': renderSalesInvoicesTable(); break;
+                case 'invoices_purchases': renderPurchaseInvoicesTable(); break;
+                case 'treasury': renderTreasuryTable(); renderTreasuryBalances(); break;
+                case 'reports':
+                case 'report_clients':
+                case 'report_suppliers':
+                case 'report_accounts': renderReportsStatements(); break;
+                case 'trip_supplies': updateTripSupplySelects(); renderTripSuppliesTable(); break;
+                case 'trip_total_settlement': updateTotalTripSelect(); renderTripTotalSettlement(); break;
+                case 'users_management': renderUsersManagement(); break;
             }
+        }
+
+        function refreshAll() {
+            /* لا نعيد رسم كل الشاشات عند وصول كل تحديث من Firebase؛ نرسم الشاشة المفتوحة فقط. */
+            renderVisibleData();
         }
 
         function toggleSharedMenu() {
@@ -1561,6 +1594,7 @@
             if (panel) panel.classList.add('active');
             if (btn) btn.classList.add('active');
             closeMobileSidebar();
+            renderVisibleData();
         }
 
         function toggleDarkMode() {
@@ -2797,17 +2831,90 @@
             `).join('');
         }
 
+        function handleSalesDescChange(selectEl) {
+            const tr = selectEl.closest('tr');
+            const val = selectEl.value;
+            const programContainer = tr.querySelector('.program-details-container');
+            const standardContainer = tr.querySelector('.standard-details-container');
+            if (val === 'برنامج') {
+                if(programContainer) programContainer.classList.remove('hidden');
+                if(standardContainer) standardContainer.classList.add('hidden');
+                populateRowPrograms(tr);
+                populateRowRepresentatives(tr);
+            } else {
+                if(programContainer) programContainer.classList.add('hidden');
+                if(standardContainer) standardContainer.classList.remove('hidden');
+            }
+            calcSalesTotals();
+        }
+
+        function populateRowPrograms(tr) {
+            const progSelect = tr.querySelector('.si_prog_name');
+            if(!progSelect) return;
+            const normal = (window.appData.hajj || []).map(p => `<option value="normal::${p.name}">🕋 (عادي) ${p.name}</option>`);
+            const shared = (window.appData.shared_hajj || []).map(p => `<option value="shared::${p.name}">🤝 (مشترك) ${p.name}</option>`);
+            progSelect.innerHTML = '<option value="">اختر البرنامج المسعر...</option>' + normal.join('') + shared.join('');
+        }
+
+        function populateRowRepresentatives(tr) {
+            const repSelect = tr.querySelector('.si_representative');
+            if(!repSelect) return;
+            const dealers = (window.appData.dealers || []).filter(d => d.type === 'العملاء' || true);
+            let opts = '<option value="">اختر المندوب المربوط مع المعتمر...</option>';
+            dealers.forEach(d => {
+                opts += `<option value="${d.name}">${d.name}</option>`;
+            });
+            repSelect.innerHTML = opts;
+        }
+
+        function updateProgramPricing(el) {
+            calcSalesTotals();
+        }
+
         function addSalesItemRow() {
             const tbody = document.getElementById('salesItemsTbody');
             if(!tbody) return;
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><select class="si_desc" required><option value="">اختر البيان...</option><option>تنفيذ شركة</option><option>مصروفات دورة نقل</option><option>باركود</option><option>طيران</option><option>فندق مكة</option><option>فندق المدينة</option><option>بدل إشراف</option><option>تأشيرة</option><option value="أخرى">أخرى</option></select></td>
-                <td><select class="si_age"><option value="بالغ">بالغ</option><option value="طفل">طفل</option><option value="رضيع">رضيع</option></select></td>
-                <td><input type="number" class="si_qty" min="1" value="1" oninput="calcSalesTotals()" required></td>
-                <td><select class="si_curr" onchange="calcSalesTotals()"><option value="EGP">EGP</option><option value="SAR">SAR</option></select></td>
-                <td><input type="number" step="0.01" class="si_price" value="0" oninput="calcSalesTotals()" required></td>
-                <td><input type="number" step="0.01" class="si_rate" value="13.20" oninput="calcSalesTotals()"></td>
+                <td>
+                    <select class="si_desc" required onchange="handleSalesDescChange(this)">
+                        <option value="">اختر البيان...</option>
+                        <option>تنفيذ شركة</option>
+                        <option>مصروفات دورة نقل</option>
+                        <option>باركود</option>
+                        <option>طيران</option>
+                        <option>فندق مكة</option>
+                        <option>فندق المدينة</option>
+                        <option>بدل إشراف</option>
+                        <option>تأشيرة</option>
+                        <option value="برنامج">🕋 برنامج</option>
+                    </select>
+                </td>
+                <td>
+                    <!-- Standard Details Container -->
+                    <div class="standard-details-container sales-item-fields">
+                        <div class="sales-item-field"><label>الفئة العمرية</label><select class="si_age"><option value="بالغ">بالغ</option><option value="طفل">طفل</option><option value="رضيع">رضيع</option></select></div>
+                        <div class="sales-item-field"><label>العدد</label><input type="number" class="si_qty" min="1" value="1" oninput="calcSalesTotals()" required></div>
+                        <div class="sales-item-field"><label>العملة</label><select class="si_curr" onchange="calcSalesTotals()"><option value="EGP">EGP</option><option value="SAR">SAR</option></select></div>
+                        <div class="sales-item-field"><label>عدد الليالي</label><input type="number" class="si_nights" min="0" value="1" oninput="calcSalesTotals()" required></div>
+                        <div class="sales-item-field"><label>سعر الفرد</label><input type="number" step="0.01" class="si_price" value="0" oninput="calcSalesTotals()" required></div>
+                        <div class="sales-item-field"><label>سعر الصرف</label><input type="number" step="0.01" class="si_rate" value="13.20" oninput="calcSalesTotals()"></div>
+                    </div>
+                    <!-- Program Details Container (Hidden by default) -->
+                    <div class="program-details-container hidden" style="background:var(--table-header-bg); padding:8px; border-radius:6px;">
+                        <div class="program-title">🕋 بيانات البرنامج المرتبطة بتسعير الحج والعمرة</div>
+                        <div class="program-item-fields">
+                            <div class="sales-item-field"><label>اسم البرنامج</label><select class="si_prog_name" onchange="updateProgramPricing(this)"></select></div>
+                            <div class="sales-item-field"><label>نوع الغرفة</label><select class="si_room_type" onchange="updateProgramPricing(this)"><option value="رباعي">غرفة رباعي</option><option value="ثلاثي">غرفة ثلاثي</option><option value="ثنائي">غرفة ثنائي</option></select></div>
+                            <div class="sales-item-field"><label>عدد الأفراد</label><input type="number" class="si_prog_individuals" min="1" value="1" oninput="calcSalesTotals()" required></div>
+                        </div>
+                        <div class="program-item-fields secondary">
+                            <div class="sales-item-field"><label>الخصم من قيمة البرنامج</label><input type="number" step="0.01" class="si_prog_discount" min="0" value="0" oninput="calcSalesTotals()"></div>
+                            <div class="sales-item-field"><label>المندوب المرتبط بالمعتمر <small>(اختياري)</small></label><select class="si_representative" aria-label="المندوب المرتبط بالمعتمر اختياري"></select></div>
+                            <div class="sales-item-field"><label>اسم المعتمر <small>(اختياري)</small></label><input type="text" class="si_pilgrim_name" placeholder="اكتب اسم المعتمر - اختياري" aria-label="اسم المعتمر اختياري"></div>
+                        </div>
+                    </div>
+                </td>
                 <td><b class="si_subtotal" style="color:var(--success);">0</b></td>
                 <td><button type="button" class="btn-del" onclick="this.closest('tr').remove(); calcSalesTotals();">حذف</button></td>
             `;
@@ -2818,20 +2925,49 @@
         function calcSalesTotals() {
             let totalEgp = 0, totalSar = 0;
             document.querySelectorAll('#salesItemsTbody tr').forEach(tr => {
-                const qty = parseFloat(tr.querySelector('.si_qty').value) || 0;
-                const price = parseFloat(tr.querySelector('.si_price').value) || 0;
-                const curr = tr.querySelector('.si_curr').value;
-                const rate = parseFloat(tr.querySelector('.si_rate').value) || 13.20;
-                const sub = qty * price;
-                tr.querySelector('.si_subtotal').innerText = sub.toLocaleString();
-                if(curr === 'EGP') totalEgp += sub;
-                else {
-                    totalSar += sub;
-                    totalEgp += (sub * rate);
+                const descSelect = tr.querySelector('.si_desc');
+                const desc = descSelect ? descSelect.value : '';
+                let sub = 0;
+                let curr = 'EGP';
+
+                if(desc === 'برنامج') {
+                    const progVal = tr.querySelector('.si_prog_name')?.value || '';
+                    const roomType = tr.querySelector('.si_room_type')?.value || 'رباعي';
+                    const individuals = parseFloat(tr.querySelector('.si_prog_individuals')?.value) || 1;
+                    const discount = parseFloat(tr.querySelector('.si_prog_discount')?.value) || 0;
+                    
+                    let basePrice = 0;
+                    if(progVal) {
+                        const [kind, name] = progVal.split('::');
+                        const list = window.appData[kind === 'shared' ? 'shared_hajj' : 'hajj'] || [];
+                        const prog = list.find(p => p.name === name);
+                        if(prog) {
+                            if(roomType === 'ثلاثي') basePrice = prog.triplePrice || 0;
+                            else if(roomType === 'ثنائي') basePrice = prog.doublePrice || 0;
+                            else basePrice = prog.quadPrice || 0;
+                        }
+                    }
+                    sub = (individuals * basePrice) - discount;
+                    if(sub < 0) sub = 0;
+                    curr = 'EGP';
+                } else {
+                    const qty = parseFloat(tr.querySelector('.si_qty')?.value) || 0;
+                    const price = parseFloat(tr.querySelector('.si_price')?.value) || 0;
+                    curr = tr.querySelector('.si_curr')?.value || 'EGP';
+                    const nightsVal = tr.querySelector('.si_nights')?.value;
+                    const nights = nightsVal === '' ? 1 : (parseFloat(nightsVal) || 1);
+                    sub = qty * price * nights;
                 }
+
+                const subtotalEl = tr.querySelector('.si_subtotal');
+                if(subtotalEl) subtotalEl.innerText = sub.toLocaleString();
+                if(curr === 'EGP') totalEgp += sub;
+                else totalSar += sub;
             });
-            document.getElementById('sales_total_egp').innerText = totalEgp.toLocaleString() + ' ج.م';
-            document.getElementById('sales_total_sar').innerText = totalSar.toLocaleString() + ' ر.س';
+            const egpEl = document.getElementById('sales_total_egp');
+            const sarEl = document.getElementById('sales_total_sar');
+            if(egpEl) egpEl.innerText = totalEgp.toLocaleString() + ' ج.م';
+            if(sarEl) sarEl.innerText = totalSar.toLocaleString() + ' ر.س';
         }
 
         function toggleSalesDueDateGroup() {
@@ -2851,17 +2987,45 @@
             let items = [];
             let totalEgp = 0, totalSar = 0;
             document.querySelectorAll('#salesItemsTbody tr').forEach(tr => {
-                const desc = tr.querySelector('.si_desc').value;
-                const age = tr.querySelector('.si_age').value;
-                const qty = parseFloat(tr.querySelector('.si_qty').value) || 0;
-                const curr = tr.querySelector('.si_curr').value;
-                const price = parseFloat(tr.querySelector('.si_price').value) || 0;
-                const sub = qty * price;
-                items.push({ desc, age, qty, curr, price, sub });
-                if(curr === 'EGP') totalEgp += sub;
-                else {
-                    totalSar += sub;
-                    totalEgp += sub * 13.20;
+                const descSelect = tr.querySelector('.si_desc');
+                const desc = descSelect ? descSelect.value : '';
+                if(desc === 'برنامج') {
+                    const progVal = tr.querySelector('.si_prog_name')?.value || '';
+                    const [kind, progName] = progVal.split('::');
+                    const roomType = tr.querySelector('.si_room_type')?.value || 'رباعي';
+                    const individuals = parseFloat(tr.querySelector('.si_prog_individuals')?.value) || 1;
+                    const discount = parseFloat(tr.querySelector('.si_prog_discount')?.value) || 0;
+                    const representative = tr.querySelector('.si_representative')?.value?.trim() || '';
+                    const pilgrimName = tr.querySelector('.si_pilgrim_name')?.value?.trim() || '';
+                    
+                    let basePrice = 0;
+                    if(progVal) {
+                        const list = window.appData[kind === 'shared' ? 'shared_hajj' : 'hajj'] || [];
+                        const prog = list.find(p => p.name === progName);
+                        if(prog) {
+                            if(roomType === 'ثلاثي') basePrice = prog.triplePrice || 0;
+                            else if(roomType === 'ثنائي') basePrice = prog.doublePrice || 0;
+                            else basePrice = prog.quadPrice || 0;
+                        }
+                    }
+                    const sub = (individuals * basePrice) - discount;
+                    items.push({
+                        desc: 'برنامج: ' + (progName || '-'),
+                        progVal, roomType, individuals, discount, representative, pilgrimName,
+                        age: 'بالغ', qty: individuals, curr: 'EGP', nights: 1, price: basePrice, sub
+                    });
+                    totalEgp += sub;
+                } else {
+                    const age = tr.querySelector('.si_age')?.value || 'بالغ';
+                    const qty = parseFloat(tr.querySelector('.si_qty')?.value) || 0;
+                    const curr = tr.querySelector('.si_curr')?.value || 'EGP';
+                    const nightsVal = tr.querySelector('.si_nights')?.value;
+                    const nights = nightsVal === '' ? 1 : (parseFloat(nightsVal) || 1);
+                    const price = parseFloat(tr.querySelector('.si_price')?.value) || 0;
+                    const sub = qty * price * nights;
+                    items.push({ desc, age, qty, curr, nights, price, sub });
+                    if(curr === 'EGP') totalEgp += sub;
+                    else totalSar += sub;
                 }
             });
 
@@ -2906,7 +3070,26 @@
             if(reportClient) reportClient.innerHTML = opts;
         }
 
-        function printSalesInvoice(docId) { const inv=(window.appData.sales_invoices||[]).find(i=>i.docId===docId);if(!inv)return;const rows=(inv.items||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.desc||'-'}</td><td>${x.age||'-'}</td><td>${x.qty||0}</td><td>${x.curr||'-'}</td><td>${(x.price||0).toLocaleString()}</td><td>${(x.sub||0).toLocaleString()}</td></tr>`).join('');const w=window.open('','','width=900,height=800');w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - فاتورة مبيعات تفصيلية</h2><p>رقم الفاتورة: <b>${inv.invoiceNo}</b> | العميل: <b>${inv.client}</b> | المجموعة: <b>${inv.groupNo}</b> | التاريخ: <b>${inv.date}</b></p><table><thead><tr><th>م</th><th>البيان</th><th>الفئة</th><th>العدد</th><th>العملة</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table><h3>الإجمالي بالجنيه: ${(inv.totalEgp||0).toLocaleString()} ج.م</h3><h3>الإجمالي بالريال: ${(inv.totalSar||0).toLocaleString()} ر.س</h3></body></html>`);w.document.close(); applyCompanyPrintBranding(w);setTimeout(()=>w.print(),300); }
+        function printSalesInvoice(docId) { 
+    const inv = (window.appData.sales_invoices || []).find(i => i.docId === docId);
+    if (!inv) return;
+    const rows = (inv.items || []).map((x, i) => `<tr>
+        <td>${i+1}</td>
+        <td>${x.desc || '-'} ${x.progVal ? `<br><small>غرفة: ${x.roomType} | الأفراد: ${x.individuals} | خصم: ${x.discount} | مندوب: ${x.representative || '-'} | معتمر: ${x.pilgrimName || '-'}</small>` : ''}</td>
+        <td>${x.age || '-'}</td>
+        <td>${x.qty || 0}</td>
+        <td>${x.curr || '-'}</td>
+        <td>${x.nights || 1}</td>
+        <td>${(x.price || 0).toLocaleString()}</td>
+        <td>${(x.sub || 0).toLocaleString()}</td>
+    </tr>`).join('');
+    const w = window.open('', '', 'width=900,height=800');
+    w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - فاتورة مبيعات تفصيلية</h2><p>رقم الفاتورة: <b>${inv.invoiceNo}</b> | العميل: <b>${inv.client}</b> | المجموعة: <b>${inv.groupNo}</b> | التاريخ: <b>${inv.date}</b></p><table><thead><tr><th>م</th><th>البيان</th><th>الفئة</th><th>العدد</th><th>العملة</th><th>الليالي</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table><h3>الإجمالي بالجنيه: ${(inv.totalEgp || 0).toLocaleString()} ج.م</h3><h3>الإجمالي بالريال: ${(inv.totalSar || 0).toLocaleString()} ر.س</h3></body></html>`);
+    w.document.close(); 
+    applyCompanyPrintBranding(w);
+    setTimeout(() => w.print(), 300); 
+}
+
 
 function addPurchaseItemRow() {
             const tbody = document.getElementById('purchaseItemsTbody');
@@ -2917,6 +3100,7 @@ function addPurchaseItemRow() {
                 <td><input type="number" class="pi_qty" min="1" value="1" oninput="calcPurchaseTotals()" required></td>
                 <td><input type="number" step="0.01" class="pi_price" value="0" oninput="calcPurchaseTotals()" required></td>
                 <td><select class="pi_curr" onchange="calcPurchaseTotals()"><option value="EGP">EGP</option><option value="SAR">SAR</option></select></td>
+                <td><input type="number" class="pi_nights" min="0" value="1" oninput="calcPurchaseTotals()" style="width:70px;"></td>
                 <td><input type="number" step="0.01" class="pi_rate" value="13.20" oninput="calcPurchaseTotals()"></td>
                 <td><b class="pi_subtotal" style="color:var(--success);">0</b></td>
                 <td><button type="button" class="btn-del" onclick="this.closest('tr').remove(); calcPurchaseTotals();">حذف</button></td>
@@ -2931,14 +3115,12 @@ function addPurchaseItemRow() {
                 const qty = parseFloat(tr.querySelector('.pi_qty').value) || 0;
                 const price = parseFloat(tr.querySelector('.pi_price').value) || 0;
                 const curr = tr.querySelector('.pi_curr').value;
-                const rate = parseFloat(tr.querySelector('.pi_rate').value) || 13.20;
-                const sub = qty * price;
+                const nightsVal = tr.querySelector('.pi_nights').value;
+                const nights = nightsVal === '' ? 0 : (parseFloat(nightsVal) || 0);
+                const sub = qty * price * nights;
                 tr.querySelector('.pi_subtotal').innerText = sub.toLocaleString();
                 if(curr === 'EGP') totalEgp += sub;
-                else {
-                    totalSar += sub;
-                    totalEgp += (sub * rate);
-                }
+                else totalSar += sub;
             });
             document.getElementById('pur_total_egp').innerText = totalEgp.toLocaleString() + ' ج.م';
             document.getElementById('pur_total_sar').innerText = totalSar.toLocaleString() + ' ر.س';
@@ -2964,14 +3146,13 @@ function addPurchaseItemRow() {
                 const desc = tr.querySelector('.pi_desc').value;
                 const qty = parseFloat(tr.querySelector('.pi_qty').value) || 0;
                 const curr = tr.querySelector('.pi_curr').value;
+                const nightsVal = tr.querySelector('.pi_nights').value;
+                const nights = nightsVal === '' ? 0 : (parseFloat(nightsVal) || 0);
                 const price = parseFloat(tr.querySelector('.pi_price').value) || 0;
-                const sub = qty * price;
-                items.push({ desc, qty, curr, price, sub });
+                const sub = qty * price * nights;
+                items.push({ desc, qty, curr, nights, price, sub });
                 if(curr === 'EGP') totalEgp += sub;
-                else {
-                    totalSar += sub;
-                    totalEgp += sub * 13.20;
-                }
+                else totalSar += sub;
             });
 
             const invoiceNo = 'PUR-' + Math.floor(100000 + Math.random() * 900000);
@@ -3014,7 +3195,17 @@ function addPurchaseItemRow() {
             if(reportSupplier) reportSupplier.innerHTML = opts;
         }
 
-        function printPurchaseInvoice(docId) { const inv=(window.appData.purchase_invoices||[]).find(i=>i.docId===docId);if(!inv)return;const rows=(inv.items||[]).map((x,i)=>`<tr><td>${i+1}</td><td>${x.desc||'-'}</td><td>${x.qty||0}</td><td>${x.curr||'-'}</td><td>${(x.price||0).toLocaleString()}</td><td>${(x.sub||0).toLocaleString()}</td></tr>`).join('');const w=window.open('','','width=900,height=800');w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - فاتورة مشتريات</h2><p>رقم الفاتورة: <b>${inv.invoiceNo}</b> | المورد: <b>${inv.supplier}</b> | التاريخ: <b>${inv.date}</b> | النوع: <b>${inv.paymentType}</b></p><table><thead><tr><th>م</th><th>البيان</th><th>العدد</th><th>العملة</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table><h3>الإجمالي بالجنيه: ${(inv.totalEgp||0).toLocaleString()} ج.م</h3><h3>الإجمالي بالريال: ${(inv.totalSar||0).toLocaleString()} ر.س</h3></body></html>`);w.document.close(); applyCompanyPrintBranding(w);setTimeout(()=>w.print(),300); }
+        function printPurchaseInvoice(docId) { 
+    const inv = (window.appData.purchase_invoices || []).find(i => i.docId === docId);
+    if (!inv) return;
+    const rows = (inv.items || []).map((x, i) => `<tr><td>${i+1}</td><td>${x.desc || '-'}</td><td>${x.qty || 0}</td><td>${x.curr || '-'}</td><td>${x.nights || 1}</td><td>${(x.price || 0).toLocaleString()}</td><td>${(x.sub || 0).toLocaleString()}</td></tr>`).join('');
+    const w = window.open('', '', 'width=900,height=800');
+    w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - فاتورة مشتريات</h2><p>رقم الفاتورة: <b>${inv.invoiceNo}</b> | المورد: <b>${inv.supplier}</b> | التاريخ: <b>${inv.date}</b> | النوع: <b>${inv.paymentType}</b></p><table><thead><tr><th>م</th><th>البيان</th><th>العدد</th><th>العملة</th><th>الليالي</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table><h3>الإجمالي بالجنيه: ${(inv.totalEgp || 0).toLocaleString()} ج.م</h3><h3>الإجمالي بالريال: ${(inv.totalSar || 0).toLocaleString()} ر.س</h3></body></html>`);
+    w.document.close(); 
+    applyCompanyPrintBranding(w);
+    setTimeout(() => w.print(), 300); 
+}
+
 
 function initTreasuryForm() {
             updateVoucherIdPrefix();
@@ -3249,13 +3440,44 @@ function initTreasuryForm() {
 
         function statementCurrencyMatch(currency,selected){return selected==='ALL'||currency===selected;} function treasuryCurrency(item){return item.currency||(item.paymentMethod==='خزنة الريال'?'SAR':'EGP');}
         function renderClientStatementTable(){const name=document.getElementById('report_client_select')?.value||'',currency=document.getElementById('report_client_currency')?.value||'ALL',tbody=document.querySelector('#reportClientTable tbody');if(!tbody)return;const rows=[];(window.appData.sales_invoices||[]).filter(x=>x.client===name).forEach(x=>{if(currency==='ALL'||(currency==='EGP'&&Number(x.totalEgp||0)>0)||(currency==='SAR'&&Number(x.totalSar||0)>0))rows.push(`<tr><td>${x.date||'-'}</td><td>فاتورة مبيعات، ${x.paymentType||'-'}</td><td>${x.invoiceNo||'-'}، استحقاق ${x.dueDate||'-'}</td><td>${currency==='SAR'?0:(x.totalEgp||0).toLocaleString()}</td><td>${currency==='EGP'?0:(x.totalSar||0).toLocaleString()}</td></tr>`);});(window.appData.treasury||[]).filter(x=>x.partyName===name).forEach(x=>{const c=treasuryCurrency(x);if(statementCurrencyMatch(c,currency))rows.push(`<tr><td>${x.date||'-'}</td><td>${x.type||'-'}، ${x.type==='قبض'?'سداد':'حركة مالية'}</td><td>${x.voucherId||x.notes||'-'}، ${x.paymentMethod||'-'}</td><td>${c==='EGP'?(x.amount||0).toLocaleString():0}</td><td>${c==='SAR'?(x.amount||0).toLocaleString():0}</td></tr>`);});tbody.innerHTML=rows.join('')||'<tr><td colspan="5" style="text-align:center">لا توجد معاملات للعميل حسب العملة المختارة.</td></tr>';}
-        function printClientStatement(){injectCurrentPagePrintBranding();window.print();}
+        function printClientStatement() {
+            const name = document.getElementById('report_client_select')?.value || '';
+            if (!name) return alert('الرجاء اختيار العميل أولاً!');
+            const currency = document.getElementById('report_client_currency')?.value || 'ALL';
+            const tableHtml = document.getElementById('reportClientTable').outerHTML;
+            const w = window.open('', '', 'width=900,height=800');
+            w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب عميل: ${name}</title><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px;text-align:right}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - كشف حساب مفصل للعميل</h2><p>العميل: <b>${name}</b> | العملة المختارة: <b>${currency}</b></p>${tableHtml}</body></html>`);
+            w.document.close();
+            applyCompanyPrintBranding(w);
+            setTimeout(() => w.print(), 300);
+        }
 
         function renderSupplierStatementTable(){const name=document.getElementById('report_supplier_select')?.value||'',currency=document.getElementById('report_supplier_currency')?.value||'ALL',tbody=document.querySelector('#reportSupplierTable tbody');if(!tbody)return;const rows=[];(window.appData.purchase_invoices||[]).filter(x=>x.supplier===name).forEach(x=>{if(currency==='ALL'||(currency==='EGP'&&Number(x.totalEgp||0)>0)||(currency==='SAR'&&Number(x.totalSar||0)>0))rows.push(`<tr><td>${x.date||'-'}</td><td>فاتورة مشتريات، ${x.paymentType||'-'}</td><td>${x.invoiceNo||'-'}، استحقاق ${x.dueDate||'-'}</td><td>${currency==='SAR'?0:(x.totalEgp||0).toLocaleString()}</td><td>${currency==='EGP'?0:(x.totalSar||0).toLocaleString()}</td></tr>`);});(window.appData.treasury||[]).filter(x=>x.partyName===name).forEach(x=>{const c=treasuryCurrency(x);if(statementCurrencyMatch(c,currency))rows.push(`<tr><td>${x.date||'-'}</td><td>${x.type||'-'}، ${x.type==='صرف'?'سداد':'حركة مالية'}</td><td>${x.voucherId||x.notes||'-'}، ${x.paymentMethod||'-'}</td><td>${c==='EGP'?(x.amount||0).toLocaleString():0}</td><td>${c==='SAR'?(x.amount||0).toLocaleString():0}</td></tr>`);});tbody.innerHTML=rows.join('')||'<tr><td colspan="5" style="text-align:center">لا توجد معاملات للمورد حسب العملة المختارة.</td></tr>';}
-        function printSupplierStatement(){injectCurrentPagePrintBranding();window.print();}
+        function printSupplierStatement() {
+            const name = document.getElementById('report_supplier_select')?.value || '';
+            if (!name) return alert('الرجاء اختيار المورد أولاً!');
+            const currency = document.getElementById('report_supplier_currency')?.value || 'ALL';
+            const tableHtml = document.getElementById('reportSupplierTable').outerHTML;
+            const w = window.open('', '', 'width=900,height=800');
+            w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب مورد: ${name}</title><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px;text-align:right}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - كشف حساب مفصل للمورد</h2><p>المورد: <b>${name}</b> | العملة المختارة: <b>${currency}</b></p>${tableHtml}</body></html>`);
+            w.document.close();
+            applyCompanyPrintBranding(w);
+            setTimeout(() => w.print(), 300);
+        }
 
         function renderAccountStatementTable(){const acc=document.getElementById('report_account_select')?.value||'BANK',currency=document.getElementById('report_account_currency')?.value||'ALL',tbody=document.querySelector('#reportAccountTable tbody');if(!tbody)return;const methods={BANK:'حساب البنك',SAR_SAFE:'خزنة الريال',EGP_SAFE:'خزنة الجنيه',SUPPLIES_SAFE:'خزنة التوريدات'},method=methods[acc],rows=(window.appData.treasury||[]).filter(x=>x.paymentMethod===method&&statementCurrencyMatch(treasuryCurrency(x),currency)).map(x=>{const c=treasuryCurrency(x);return `<tr><td>${x.date||'-'}</td><td>${x.type||'-'}، ${x.type==='قبض'?'قبض / سداد':'صرف'}</td><td>${x.paymentMethod||'-'}، ${c}</td><td>${x.notes||x.partyName||'-'}</td><td>${(x.amount||0).toLocaleString()} ${c==='SAR'?'ر.س':'ج.م'}</td></tr>`;});tbody.innerHTML=rows.join('')||'<tr><td colspan="5" style="text-align:center">لا توجد حركات للحساب والعملة المختارين.</td></tr>';}
-        function printAccountStatement(){injectCurrentPagePrintBranding();window.print();}
+        function printAccountStatement() {
+            const acc = document.getElementById('report_account_select')?.value || 'BANK';
+            const methods = {BANK:'حساب البنك', SAR_SAFE:'خزنة الريال', EGP_SAFE:'خزنة الجنيه', SUPPLIES_SAFE:'خزنة التوريدات'};
+            const accName = methods[acc] || acc;
+            const currency = document.getElementById('report_account_currency')?.value || 'ALL';
+            const tableHtml = document.getElementById('reportAccountTable').outerHTML;
+            const w = window.open('', '', 'width=900,height=800');
+            w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف حساب: ${accName}</title><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px;text-align:right}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - كشف حساب البنك والخزائن</h2><p>الحساب: <b>${accName}</b> | العملة المختارة: <b>${currency}</b></p>${tableHtml}</body></html>`);
+            w.document.close();
+            applyCompanyPrintBranding(w);
+            setTimeout(() => w.print(), 300);
+        }
 
         async function createSystemUser(e) {
             e.preventDefault();
@@ -3372,13 +3594,22 @@ function initTreasuryForm() {
             const bank = balance(treasury.filter(item => item.paymentMethod === 'حساب البنك'));
             const supplierPurchasesDue = purchases.filter(item => item.paymentType === 'آجل').reduce((sum,item) => sum + (Number(item.totalEgp) || 0), 0);
             const supplierPayments = treasury.filter(item => item.type === 'صرف' && (item.partyType === 'مورد' || item.accountType === 'مورد')).reduce((sum,item) => sum + (Number(item.amount) || 0), 0);
-            const clientSalesDue = sales.filter(item => item.paymentType === 'آجل').reduce((sum,item) => sum + (Number(item.totalEgp) || 0), 0);
-            const clientReceipts = treasury.filter(item => item.type === 'قبض' && (item.partyType === 'عميل' || item.accountType === 'عميل')).reduce((sum,item) => sum + (Number(item.amount) || 0), 0);
+            const clientSalesDueEgp = sales.filter(item => item.paymentType === 'آجل').reduce((sum,item) => sum + (Number(item.totalEgp) || 0), 0);
+            const clientSalesDueSar = sales.filter(item => item.paymentType === 'آجل').reduce((sum,item) => sum + (Number(item.totalSar) || 0), 0);
+            const clientReceiptsEgp = treasury.filter(item => item.type === 'قبض' && (item.partyType === 'عميل' || item.accountType === 'عميل') && (item.currency !== 'SAR' && item.paymentMethod !== 'خزنة الريال')).reduce((sum,item) => sum + (Number(item.amount) || 0), 0);
+            const clientReceiptsSar = treasury.filter(item => item.type === 'قبض' && (item.partyType === 'عميل' || item.accountType === 'عميل') && (item.currency === 'SAR' || item.paymentMethod === 'خزنة الريال')).reduce((sum,item) => sum + (Number(item.amount) || 0), 0);
+
+            const netClientEgp = clientSalesDueEgp - clientReceiptsEgp;
+            const netClientSar = clientSalesDueSar - clientReceiptsSar;
 
             const setText = (id,value) => { const el=document.getElementById(id); if(el) el.innerText=money(value); };
             setText('dash-bank-account', bank);
             setText('dash-suppliers-due', supplierPurchasesDue - supplierPayments);
-            setText('dash-clients-due', clientSalesDue - clientReceipts);
+            
+            const clientDueEl = document.getElementById('dash-clients-due');
+            if(clientDueEl) {
+                clientDueEl.innerHTML = `${netClientEgp.toLocaleString()} ج.م<br><span style="font-size:15px; color:var(--warning);">${netClientSar.toLocaleString()} ر.س</span>`;
+            }
 
             const names = [...new Set(tripData.map(p => p.tripName).filter(Boolean))];
             const select = document.getElementById('dash-pilgrim-program-select');
