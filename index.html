@@ -262,6 +262,7 @@
         </div>
         <button id="nav_users" class="nav-btn" onclick="showTab('users_management', this)">🔑 10. إدارة الموظفين والباسورد</button>
         <button id="nav_trip_supplies_menu_btn" class="nav-btn" onclick="toggleTripSuppliesMenu()">📋 11. تصفية وتوريدات الرحلات ▾</button>
+        <button id="nav_balance_sheet" class="nav-btn" onclick="showTab('balance_sheet', this)">📊 12. الميزانية العمومية</button>
         <div id="trip_supplies_submenu" class="submenu-container">
             <button id="nav_trip_total_settlement" class="nav-btn sub-nav-btn" onclick="showTab('trip_total_settlement', this)">📊 عرض التصفية الكلية</button>
             <button id="nav_trip_supplies" class="nav-btn sub-nav-btn" onclick="showTab('trip_supplies', this)">📋 تصفية وتوريدات الرحلات</button>
@@ -293,7 +294,7 @@
             </div>
             <div class="metrics-grid">
                 <div class="metric-card success"><div class="metric-title">إجمالي مبيعات الفواتير</div><div class="metric-value" id="dash-sales">0 ج.م</div></div>
-                <div class="metric-card danger"><div class="metric-title">إجمالي إشتراءات الموردين</div><div class="metric-value" id="dash-costs">0 ج.م</div></div>
+                <div class="metric-card danger"><div class="metric-title">إجمالي مشتريات الموردين</div><div class="metric-value" id="dash-costs">0 ج.م</div></div>
                 <div class="metric-card warning"><div class="metric-title">رصيد خزنة الجنيه (EGP)</div><div class="metric-value" id="dash-cash-egp">0 ج.م</div></div>
                 <div class="metric-card warning"><div class="metric-title">رصيد خزنة الريال (SAR)</div><div class="metric-value" id="dash-cash-sar">0 ر.س</div></div>
                 <div class="metric-card"><div class="metric-title">رصيد خزنة التوريدات المستقلة</div><div class="metric-value" id="dash-cash-supplies">0 ج.م</div></div>
@@ -720,7 +721,7 @@
                 <form onsubmit="addSalesInvoice(event)">
                     <div class="form-grid" style="margin-bottom:15px;">
                         <div class="form-group"><label>العميل</label><select id="inv_sale_client" required></select></div>
-                        <div class="form-group"><label>رقم المجموعة (Group No)</label><input type="text" id="inv_sale_group" placeholder="مثال: G-102" required></div>
+                        <div class="form-group"><label>رقم الفاتورة (ترقيم تلقائي)</label><input type="text" id="inv_sale_invoice_no" readonly style="font-weight:bold;color:var(--accent);background:var(--table-header-bg);" placeholder="يتم الترقيم تلقائيًا"></div>
                         <div class="form-group">
                             <label>طريقة الدفع</label>
                             <select id="inv_sale_payment_type" onchange="toggleSalesDueDateGroup()">
@@ -767,7 +768,7 @@
 
             <div class="data-table-container">
                 <table id="salesInvoicesTable">
-                    <thead><tr><th>رقم الفاتورة</th><th>رقم المجموعة</th><th>العميل</th><th>طريقة الدفع</th><th>تاريخ الاستحقاق</th><th>إجمالي (EGP)</th><th>إجمالي (SAR)</th><th>التاريخ</th><th>العمليات والطباعة</th></tr></thead>
+                    <thead><tr><th>رقم الفاتورة</th><th>العميل</th><th>طريقة الدفع</th><th>تاريخ الاستحقاق</th><th>إجمالي (EGP)</th><th>إجمالي (SAR)</th><th>التاريخ</th><th>العمليات والطباعة</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
@@ -780,6 +781,7 @@
                 <form onsubmit="addPurchaseInvoice(event)">
                     <div class="form-grid" style="margin-bottom:15px;">
                         <div class="form-group"><label>المورد</label><select id="inv_pur_supplier" required></select></div>
+                        <div class="form-group"><label>رقم الفاتورة (ترقيم تلقائي)</label><input type="text" id="inv_pur_invoice_no" readonly style="font-weight:bold;color:var(--accent);background:var(--table-header-bg);" placeholder="يتم الترقيم تلقائيًا"></div>
                         <div class="form-group">
                             <label>نوع العملية</label>
                             <select id="inv_pur_payment_type" onchange="togglePurchaseDueDateGroup()">
@@ -907,6 +909,7 @@
                     <div class="form-group">
                         <label>👤 الاسم (متزامن مع المتعاملين)</label>
                         <select id="tx_party_name" required></select>
+                        <input type="text" id="tx_party_name_text" class="hidden" placeholder="اكتب اسم الجهة أو الخزنة..." autocomplete="off">
                     </div>
 
                     <div class="form-group">
@@ -1164,7 +1167,37 @@
             </div>
         </div>
 
+        <!-- 📊 12. الميزانية العمومية -->
+        <div id="balance_sheet" class="tab-panel">
+            <h2>📊 الميزانية العمومية</h2><br>
+            <div class="section-card">
+                <div class="table-controls">
+                    <div><h3 style="margin-bottom:4px">ملخص المركز المالي</h3><p style="font-size:12px;color:var(--text-main)">يتم إعداد الأرصدة تلقائيًا من الخزائن والفواتير المسجلة، مع الحفاظ على كل السجلات القديمة.</p></div>
+                    <button type="button" class="btn-submit" onclick="renderBalanceSheet()">🔄 تحديث الميزانية</button>
+                </div>
+                <div id="balanceSheetCards" class="metrics-grid"></div>
+            </div>
+            <div class="section-card" style="border-right:4px solid var(--success)"><h3>ملخص الميزانية وصافي الأرباح</h3><div id="profitSummaryCards" class="metrics-grid"></div><p style="font-size:12px;color:var(--text-main)">صافي الربح التشغيلي = إجمالي المبيعات − إجمالي المشتريات − المصروفات المسجلة. الوارد والمنصرف من السندات معروض كتدفقات نقدية مستقلة حتى لا يتم تكرار خصم المشتريات المدفوعة.</p></div>
+            <div class="section-card"><h3>جميع المبيعات</h3><div class="data-table-container"><table id="balanceSalesTable"><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>العميل</th><th>طريقة الدفع</th><th>الإجمالي بالجنيه</th><th>الإجمالي بالريال</th></tr></thead><tbody></tbody></table></div></div>
+            <div class="section-card"><h3>جميع المشتريات</h3><div class="data-table-container"><table id="balancePurchasesTable"><thead><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>المورد</th><th>طريقة الدفع</th><th>الإجمالي بالجنيه</th><th>الإجمالي بالريال</th></tr></thead><tbody></tbody></table></div></div>
+            <div class="section-card"><h3>جميع الوارد من سندات القبض</h3><div class="data-table-container"><table id="balanceReceiptsTable"><thead><tr><th>التاريخ</th><th>الاسم / البيان</th><th>الخزنة أو الحساب</th><th>المبلغ</th><th>العملة</th><th>الملاحظات</th></tr></thead><tbody></tbody></table></div></div>
+            <div class="section-card"><h3>جميع المنصرف من سندات الصرف</h3><div class="data-table-container"><table id="balancePaymentsTable"><thead><tr><th>التاريخ</th><th>الاسم / البيان</th><th>الخزنة أو الحساب</th><th>المبلغ</th><th>العملة</th><th>الملاحظات</th></tr></thead><tbody></tbody></table></div></div>
+            <div class="section-card"><h3>تفاصيل الميزانية</h3><div class="data-table-container"><table id="balanceSheetTable"><thead><tr><th>البند</th><th>النوع</th><th>الرصيد</th><th>البيان</th></tr></thead><tbody></tbody></table></div></div>
+        </div>
+
     </div>
+
+    <!-- عرض الأرصدة المحلية فورًا قبل تحميل Firebase -->
+    <script>
+    (function(){
+        try{
+            const data=JSON.parse(localStorage.getItem('nh_cache_treasury')||'[]'), totals={};
+            data.forEach(x=>{const a=x.paymentMethod;if(a)totals[a]=(totals[a]||0)+(x.type==='قبض'?1:-1)*(Number(x.amount)||0);});
+            const paint=(id,v,u)=>{const e=document.getElementById(id);if(e)e.textContent=Number(v||0).toLocaleString()+' '+u;};
+            paint('cash_egp_val',totals['خزنة الجنيه'],'ج.م'); paint('cash_sar_val',totals['خزنة الريال'],'ر.س'); paint('cash_supplies_val',totals['خزنة التوريدات'],'ج.م'); paint('dash-bank-account',totals['حساب البنك'],'ج.م');
+        }catch(e){console.warn('تعذر العرض المحلي السريع للأرصدة:',e);}
+    })();
+    </script>
 
     <!-- Firebase SDK Modular Setup -->
     <script type="module">
@@ -1191,6 +1224,13 @@
         };
 
         const collections = ['hotels', 'hajj', 'trip_data', 'shared_hajj', 'shared_trip_data', 'dealers', 'expenses', 'employees', 'sales_invoices', 'purchase_invoices', 'treasury', 'trip_supplies'];
+        /* تحميل آخر نسخة محلية فورًا حتى تظهر الأرصدة قبل اكتمال اتصال Firebase، دون حذف أو تعديل البيانات الأصلية. */
+        try {
+            collections.forEach(colName => {
+                const cached = JSON.parse(localStorage.getItem('nh_cache_' + colName) || 'null');
+                if (Array.isArray(cached)) window.appData[colName] = cached;
+            });
+        } catch (cacheError) { console.warn('تعذر تحميل الذاكرة المؤقتة المحلية:', cacheError); }
 
         let refreshQueued = false;
         let loadedCollections = new Set();
@@ -1214,6 +1254,7 @@
         collections.forEach(colName => {
             onSnapshot(collection(db, colName), (snapshot) => {
                 window.appData[colName] = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
+                try { localStorage.setItem('nh_cache_' + colName, JSON.stringify(window.appData[colName])); } catch (cacheError) { console.warn('تعذر حفظ الذاكرة المؤقتة المحلية:', cacheError); }
                 loadedCollections.add(colName);
                 setServerStatus(true);
                 queueRefresh();
@@ -1359,7 +1400,7 @@
             user4: { username: "mohamed", password: "123", role: "employee", name: "محمد", permissions: ['dashboard', 'trip_data', 'shared_trip_data'] },
             user5: { username: "mahmoud", password: "123", role: "employee", name: "محمود", permissions: ['dashboard', 'trip_data', 'shared_trip_data'] }
         };
-        const permissionLabels = { dashboard:'الشاشة الرئيسية', hotels:'حجز الفنادق', hajj:'تسعير الحج والعمرة', trip_data:'الرحلات الأساسية والتسكين', shared_hajj:'تسعير الرحلات المشتركة', shared_trip_data:'الرحلات المشتركة والتسكين', invoices_sales:'فواتير المبيعات', invoices_purchases:'فواتير المشتريات', treasury:'الخزنة والحسابات', reports:'التقارير', report_accounts:'كشوف الحسابات', users_management:'إدارة الموظفين', trip_supplies:'تصفية الرحلات' };
+        const permissionLabels = { dashboard:'الشاشة الرئيسية', hotels:'حجز الفنادق', hajj:'تسعير الحج والعمرة', trip_data:'الرحلات الأساسية والتسكين', shared_hajj:'تسعير الرحلات المشتركة', shared_trip_data:'الرحلات المشتركة والتسكين', invoices_sales:'فواتير المبيعات', invoices_purchases:'فواتير المشتريات', treasury:'الخزنة والحسابات', reports:'التقارير', report_accounts:'كشوف الحسابات', users_management:'إدارة الموظفين', trip_supplies:'تصفية الرحلات', balance_sheet:'الميزانية العمومية' };
         function enforceDefaultAccounts(users) {
             const cleaned = { ...(users || {}) };
             delete cleaned.user1;
@@ -1404,7 +1445,7 @@
             });
         }
         function openFirstAllowedTab() {
-            const preferred = ['dashboard','hajj','trip_data','shared_hajj','shared_trip_data','hotels','invoices_sales','invoices_purchases','treasury','reports','report_accounts','users_management','trip_supplies'];
+            const preferred = ['dashboard','hajj','trip_data','shared_hajj','shared_trip_data','hotels','invoices_sales','invoices_purchases','treasury','reports','report_accounts','users_management','trip_supplies','balance_sheet'];
             const first = preferred.find(id => hasPermission(id));
             if (!first) return;
             document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
@@ -1486,6 +1527,7 @@
                 case 'report_suppliers':
                 case 'report_accounts': renderReportsStatements(); break;
                 case 'trip_supplies': updateTripSupplySelects(); renderTripSuppliesTable(); break;
+                case 'balance_sheet': renderBalanceSheet(); break;
                 case 'trip_total_settlement': updateTotalTripSelect(); renderTripTotalSettlement(); break;
                 case 'users_management': renderUsersManagement(); break;
             }
@@ -3030,7 +3072,7 @@
         async function addSalesInvoice(e) {
             e.preventDefault();
             const client = document.getElementById('inv_sale_client').value;
-            const groupNo = document.getElementById('inv_sale_group').value.trim();
+            const groupNo = '';
             const paymentType = document.getElementById('inv_sale_payment_type').value;
             const dueDate = document.getElementById('inv_sale_due_date').value;
 
@@ -3079,7 +3121,7 @@
                 }
             });
 
-            const invoiceNo = 'INV-' + Math.floor(100000 + Math.random() * 900000);
+            const invoiceNo = nextInvoiceNumber('INV-', window.appData.sales_invoices || []);
             const date = new Date().toISOString().split('T')[0];
 
             await window.dbSave('sales_invoices', { invoiceNo, client, groupNo, paymentType, dueDate, items, totalEgp, totalSar, date, accountParty: client, accountType: 'عميل' }); if(paymentType==='نقداً'&&totalEgp>0) await window.dbSave('treasury',{voucherId:invoiceNo,type:'قبض',date,paymentMethod:'خزنة الجنيه',currency:'EGP',sarRate:13.20,partyType:'عميل',partyName:client,amount:totalEgp,notes:'ترحيل فاتورة مبيعات '+invoiceNo});
@@ -3134,7 +3176,7 @@
         <td>${(x.sub || 0).toLocaleString()}</td>
     </tr>`).join('');
     const w = window.open('', '', 'width=900,height=800');
-    w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - فاتورة مبيعات تفصيلية</h2><p>رقم الفاتورة: <b>${inv.invoiceNo}</b> | العميل: <b>${inv.client}</b> | المجموعة: <b>${inv.groupNo}</b> | التاريخ: <b>${formatDateDMY(inv.date)}</b></p><table><thead><tr><th>م</th><th>البيان</th><th>الفئة</th><th>العدد</th><th>العملة</th><th>الليالي</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table><h3>الإجمالي بالجنيه: ${(inv.totalEgp || 0).toLocaleString()} ج.م</h3><h3>الإجمالي بالريال: ${(inv.totalSar || 0).toLocaleString()} ر.س</h3></body></html>`);
+    w.document.write(`<html lang="ar" dir="rtl"><head><meta charset="UTF-8"><style>body{font-family:Tahoma;padding:24px}h2{text-align:center;border-bottom:2px solid #111;padding:10px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #555;padding:8px}th{background:#f1f5f9}</style></head><body><h2>🌍 شركة نيو هاي لايتس - فاتورة مبيعات تفصيلية</h2><p>رقم الفاتورة: <b>${inv.invoiceNo}</b> | العميل: <b>${inv.client}</b> | التاريخ: <b>${formatDateDMY(inv.date)}</b></p><table><thead><tr><th>م</th><th>البيان</th><th>الفئة</th><th>العدد</th><th>العملة</th><th>الليالي</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows}</tbody></table><h3>الإجمالي بالجنيه: ${(inv.totalEgp || 0).toLocaleString()} ج.م</h3><h3>الإجمالي بالريال: ${(inv.totalSar || 0).toLocaleString()} ر.س</h3></body></html>`);
     w.document.close(); 
     applyCompanyPrintBranding(w);
     setTimeout(() => w.print(), 300); 
@@ -3205,7 +3247,7 @@ function addPurchaseItemRow() {
                 else totalSar += sub;
             });
 
-            const invoiceNo = 'PUR-' + Math.floor(100000 + Math.random() * 900000);
+            const invoiceNo = nextInvoiceNumber('PUR-', window.appData.purchase_invoices || []);
             const date = new Date().toISOString().split('T')[0];
 
             await window.dbSave('purchase_invoices', { invoiceNo, supplier, paymentType, dueDate, notes, items, totalEgp, totalSar, date, accountParty: supplier, accountType: 'مورد' }); if(paymentType==='نقداً'&&totalEgp>0) await window.dbSave('treasury',{voucherId:invoiceNo,type:'صرف',date,paymentMethod:'خزنة الجنيه',currency:'EGP',sarRate:13.20,partyType:'مورد',partyName:supplier,amount:totalEgp,notes:'ترحيل فاتورة مشتريات '+invoiceNo});
@@ -3898,5 +3940,277 @@ function initTreasuryForm() {
 })();
 </script>
 
+<script id="nh-requested-fixes">
+(function(){
+    const n=v=>Number(v||0);
+    const dateKey=v=>{const s=String(v||''); if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s; const m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/); return m?`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`:'9999-99-99';};
+    const asc=a=>a.slice().sort((x,y)=>dateKey(x.date).localeCompare(dateKey(y.date)) || String(x.invoiceNo||x.voucherId||x.docId||'').localeCompare(String(y.invoiceNo||y.voucherId||y.docId||''),'ar'));
+    const curr=x=>x.currency || (x.paymentMethod==='خزنة الريال'?'SAR':'EGP');
+    const money=v=>n(v).toLocaleString('ar-EG',{maximumFractionDigits:2});
+
+    window.handleTreasuryMethodChange=function(){
+        const method=document.getElementById('tx_payment_method');
+        const type=document.getElementById('tx_party_type');
+        if(method && !Array.from(method.options).some(o=>o.value==='خزنة البنك')) {
+            /* الإبقاء على القيمة القديمة «حساب البنك» وعدم حذف أي بيانات محفوظة */
+            if(!Array.from(method.options).some(o=>o.value==='حساب البنك')) method.insertAdjacentHTML('beforeend','<option value="حساب البنك">حساب البنك</option>');
+        }
+        if(type) window.populatePartyNames();
+    };
+    window.updateTreasuryPartyTypes=function(){
+        const select=document.getElementById('tx_party_type'); if(!select)return;
+        const current=select.value||'عميل', dealers=window.appData.dealers||[];
+        const map={'العملاء':'عميل','الموردين':'مورد','المصروفات':'مصروفات','الاستحقاقات':'استحقاقات','الموظفين':'موظف'};
+        const values=['عميل','مورد','مصروفات','استحقاقات','موظف','أخرى'];
+        dealers.map(d=>d.type).filter(Boolean).forEach(t=>{const v=map[t]||t;if(!values.includes(v))values.push(v);});
+        select.innerHTML=values.map(v=>`<option value="${v}">${v==='أخرى'?'أخرى / اسم مخصص':v}</option>`).join('');
+        select.value=values.includes(current)?current:'عميل';
+        window.populatePartyNames();
+    };
+    window.populatePartyNames=function(){
+        const type=document.getElementById('tx_party_type')?.value||'عميل', sel=document.getElementById('tx_party_name'), text=document.getElementById('tx_party_name_text');
+        if(!sel)return;
+        const custom=type==='أخرى';
+        if(text) text.classList.toggle('hidden',!custom);
+        sel.classList.toggle('hidden',custom); sel.required=!custom; if(text) text.required=custom;
+        if(custom){sel.innerHTML='<option value="">اسم مخصص</option>';return;}
+        const map={'عميل':'العملاء','مورد':'الموردين','مصروفات':'المصروفات','استحقاقات':'الاستحقاقات','موظف':'الموظفين'};
+        const list=(window.appData.dealers||[]).filter(d=>d.type===(map[type]||type));
+        sel.innerHTML='<option value="">اختر الاسم...</option>'+list.map(x=>`<option value="${x.name}">${x.name}</option>`).join('');
+    };
+    const oldAddTreasury=window.addTreasuryTx;
+    window.addTreasuryTx=async function(e){
+        const type=document.getElementById('tx_party_type')?.value;
+        const text=document.getElementById('tx_party_name_text');
+        if(type==='أخرى' && text && !text.value.trim()){e.preventDefault();return alert('برجاء كتابة اسم الجهة أو الخزنة في خانة الاسم.');}
+        if(type==='أخرى' && text){const sel=document.getElementById('tx_party_name'); if(sel){sel.value=text.value.trim();}}
+        return oldAddTreasury.apply(this,arguments);
+    };
+
+    function renderSortedStatements(){
+        const client=document.getElementById('report_client_select')?.value||'', ccur=document.getElementById('report_client_currency')?.value||'ALL', ct=document.querySelector('#reportClientTable tbody');
+        if(ct){const rows=[]; asc((window.appData.sales_invoices||[]).filter(x=>x.client===client)).forEach(x=>{if(ccur==='ALL'||(ccur==='EGP'&&n(x.totalEgp)>0)||(ccur==='SAR'&&n(x.totalSar)>0))rows.push({date:x.date,html:`<tr><td>${formatDateDMY(x.date)}</td><td>فاتورة مبيعات - مستحق</td><td>${x.invoiceNo||'-'}، استحقاق ${x.dueDate||'-'}</td><td>${ccur==='SAR'?0:money(x.totalEgp)}</td><td>${ccur==='EGP'?0:money(x.totalSar)}</td></tr>`});}); asc((window.appData.treasury||[]).filter(x=>x.partyName===client&&x.type==='قبض')).forEach(x=>{const c=curr(x);if(ccur==='ALL'||c===ccur)rows.push({date:x.date,html:`<tr><td>${formatDateDMY(x.date)}</td><td>سداد من العميل</td><td>${x.voucherId||x.notes||'-'}، ${x.paymentMethod||'-'}</td><td>${c==='EGP'?money(x.amount):0}</td><td>${c==='SAR'?money(x.amount):0}</td></tr>`});});rows.sort((a,b)=>dateKey(a.date).localeCompare(dateKey(b.date)));ct.innerHTML=rows.map(x=>x.html).join('')||'<tr><td colspan="5" style="text-align:center">لا توجد معاملات للعميل حسب العملة المختارة.</td></tr>';}
+        const supplier=document.getElementById('report_supplier_select')?.value||'', scur=document.getElementById('report_supplier_currency')?.value||'ALL', st=document.querySelector('#reportSupplierTable tbody');
+        if(st){const rows=[];asc((window.appData.purchase_invoices||[]).filter(x=>x.supplier===supplier)).forEach(x=>{if(scur==='ALL'||(scur==='EGP'&&n(x.totalEgp)>0)||(scur==='SAR'&&n(x.totalSar)>0))rows.push({date:x.date,html:`<tr><td>${formatDateDMY(x.date)}</td><td>فاتورة مشتريات - مستحق</td><td>${x.invoiceNo||'-'}، استحقاق ${x.dueDate||'-'}</td><td>${scur==='SAR'?0:money(x.totalEgp)}</td><td>${scur==='EGP'?0:money(x.totalSar)}</td></tr>`});});asc((window.appData.treasury||[]).filter(x=>x.partyName===supplier&&x.type==='صرف')).forEach(x=>{const c=curr(x);if(scur==='ALL'||c===scur)rows.push({date:x.date,html:`<tr><td>${formatDateDMY(x.date)}</td><td>سداد للمورد</td><td>${x.voucherId||x.notes||'-'}، ${x.paymentMethod||'-'}</td><td>${c==='EGP'?money(x.amount):0}</td><td>${c==='SAR'?money(x.amount):0}</td></tr>`});});rows.sort((a,b)=>dateKey(a.date).localeCompare(dateKey(b.date)));st.innerHTML=rows.map(x=>x.html).join('')||'<tr><td colspan="5" style="text-align:center">لا توجد معاملات للمورد حسب العملة المختارة.</td></tr>';}
+        const acc=document.getElementById('report_account_select')?.value||'BANK', acur=document.getElementById('report_account_currency')?.value||'ALL', at=document.querySelector('#reportAccountTable tbody'), methods={BANK:'حساب البنك',SAR_SAFE:'خزنة الريال',EGP_SAFE:'خزنة الجنيه',SUPPLIES_SAFE:'خزنة التوريدات'};
+        if(at){const rows=asc((window.appData.treasury||[]).filter(x=>x.paymentMethod===methods[acc]&&(acur==='ALL'||curr(x)===acur))).map(x=>{const c=curr(x);return `<tr><td>${formatDateDMY(x.date)}</td><td>${x.type==='قبض'?'قبض / إيراد':'صرف / سداد'}</td><td>${x.paymentMethod||'-'}، ${c}</td><td>${x.partyName||'-'}</td><td>${x.notes||'-'}</td><td>${money(x.amount)} ${c==='SAR'?'ر.س':'ج.م'}</td></tr>`});at.innerHTML=rows.join('')||'<tr><td colspan="6" style="text-align:center">لا توجد حركات للحساب والعملة المختارين.</td></tr>';}
+    }
+    window.renderClientStatementTable=renderSortedStatements; window.renderSupplierStatementTable=renderSortedStatements; window.renderAccountStatementTable=renderSortedStatements;
+
+    const oldDash=window.renderDashboardExtraCards;
+    window.renderDashboardExtraCards=function(){
+        if(typeof oldDash==='function')oldDash.apply(this,arguments);
+        const sales=(window.appData.sales_invoices||[]), purchases=(window.appData.purchase_invoices||[]);
+        const set=(id,v,u)=>{const el=document.getElementById(id);if(el)el.innerText=money(v)+' '+u;};
+        set('dash-sales',sales.reduce((a,x)=>a+n(x.totalEgp),0),'ج.م');
+        set('dash-costs',purchases.reduce((a,x)=>a+n(x.totalEgp),0),'ج.م');
+    };
+    document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{window.updateTreasuryPartyTypes();window.renderDashboardExtraCards();renderSortedStatements();},350));
+})();
+</script>
+<script id="nh-fast-treasury-and-cache-fix">
+(function(){
+    const vaultOptions = ['خزنة الجنيه','خزنة الريال','حساب البنك','خزنة التوريدات'];
+    const partyType = () => document.getElementById('tx_party_type')?.value || '';
+    const nameSelect = () => document.getElementById('tx_party_name');
+    const nameText = () => document.getElementById('tx_party_name_text');
+    const paymentOptions = () => {
+        const select = document.getElementById('tx_payment_method');
+        const values = select ? Array.from(select.options).map(o=>o.value).filter(Boolean) : [];
+        return [...new Set([...vaultOptions, ...values])];
+    };
+    const esc = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+    window.populatePartyNames = function(){
+        const select = nameSelect(), text = nameText(), type = partyType();
+        if(!select) return;
+        const isOther = type === 'أخرى' || type === 'مصروفات';
+        if(text) { text.classList.toggle('hidden', !isOther); text.required = false; }
+        select.classList.toggle('hidden', isOther);
+        select.required = !isOther;
+        if(isOther){
+            const options = paymentOptions();
+            select.innerHTML = '<option value="">اختر الخزنة أو الحساب...</option>' + options.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+            select.required = true;
+            if(text) text.value = select.value || '';
+            return;
+        }
+        const map = {'عميل':'العملاء','مورد':'الموردين','موظف':'الموظفين','استحقاقات':'الاستحقاقات'};
+        const dealerType = map[type] || type;
+        const list = (window.appData.dealers || []).filter(d => d.type === dealerType);
+        select.innerHTML = '<option value="">اختر الاسم...</option>' + list.map(d=>`<option value="${esc(d.name)}">${esc(d.name)}</option>`).join('');
+    };
+
+    window.updateTreasuryPartyTypes = function(){
+        const select = document.getElementById('tx_party_type'); if(!select) return;
+        const current = select.value || 'عميل';
+        const values = ['عميل','مورد','مصروفات','استحقاقات','موظف','أخرى'];
+        const map = {'العملاء':'عميل','الموردين':'مورد','المصروفات':'مصروفات','الاستحقاقات':'استحقاقات','الموظفين':'موظف'};
+        (window.appData.dealers || []).forEach(d=>{const v=map[d.type] || d.type;if(v && !values.includes(v)) values.push(v);});
+        select.innerHTML = values.map(v=>`<option value="${esc(v)}">${v==='أخرى'?'أخرى / خزائن وحسابات':v==='مصروفات'?'مصروفات / أخرى':esc(v)}</option>`).join('');
+        select.value = values.includes(current) ? current : 'عميل';
+        window.populatePartyNames();
+    };
+
+    const previousAddTreasury = window.addTreasuryTx;
+    window.addTreasuryTx = async function(event){
+        const type = partyType(), select = nameSelect(), text = nameText();
+        if(type === 'أخرى' || type === 'مصروفات'){
+            if(!select?.value){event.preventDefault();return alert('برجاء اختيار الخزنة أو الحساب من خانة الاسم.');}
+            if(text) text.value = select.value;
+        }
+        return previousAddTreasury.apply(this, arguments);
+    };
+
+    function paintBalancesImmediately(){
+        try {
+            if(typeof window.renderTreasuryBalances === 'function') window.renderTreasuryBalances();
+            if(typeof window.renderDashboardExtraCards === 'function') window.renderDashboardExtraCards();
+        } catch(error) { console.warn('تعذر عرض الأرصدة المحلية فورًا:', error); }
+    }
+    window.addEventListener('DOMContentLoaded', ()=>{
+        window.updateTreasuryPartyTypes();
+        paintBalancesImmediately();
+        setTimeout(paintBalancesImmediately, 0);
+    });
+    /* إعادة رسم خفيفة بعد كل تحديث بيانات، بدل انتظار اكتمال جميع المجموعات. */
+    const originalQueueRefresh = window.queueRefresh;
+    if(typeof originalQueueRefresh === 'function'){
+        window.queueRefresh = function(){ const result=originalQueueRefresh.apply(this,arguments); paintBalancesImmediately(); return result; };
+    }
+    document.getElementById('tx_party_type')?.addEventListener('change', ()=>setTimeout(window.populatePartyNames,0));
+})();
+</script>
+<script id="nh-treasury-transfer-and-instant-balance-fix">
+(function(){
+    const vaults = ['خزنة الجنيه','خزنة الريال','حساب البنك','خزنة التوريدات'];
+    const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const val = id => document.getElementById(id)?.value || '';
+    const num = v => Number(v || 0);
+    const allAccounts = () => {
+        const method = document.getElementById('tx_payment_method');
+        const fromForm = method ? Array.from(method.options).map(o=>o.value).filter(Boolean) : [];
+        const fromHistory = (window.appData.treasury || []).map(x=>x.paymentMethod).filter(Boolean);
+        return [...new Set([...vaults, ...fromForm, ...fromHistory])];
+    };
+    function refreshTransferNames(){
+        const type = val('tx_party_type'), select = document.getElementById('tx_party_name'), text = document.getElementById('tx_party_name_text');
+        if(!select) return;
+        if(type === 'أخرى' || type === 'مصروفات'){
+            select.classList.remove('hidden');
+            select.required = true;
+            if(text){ text.classList.add('hidden'); text.required = false; }
+            const current = select.value;
+            select.innerHTML = '<option value="">اختر الحساب أو الخزنة الأخرى...</option>' + allAccounts().map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+            if(allAccounts().includes(current)) select.value = current;
+            return;
+        }
+        if(text){text.classList.add('hidden');text.required=false;}
+        select.classList.remove('hidden'); select.required=true;
+        const map={'عميل':'العملاء','مورد':'الموردين','موظف':'الموظفين','استحقاقات':'الاستحقاقات'};
+        const list=(window.appData.dealers||[]).filter(d=>d.type===(map[type]||type));
+        select.innerHTML='<option value="">اختر الاسم...</option>'+list.map(d=>`<option value="${esc(d.name)}">${esc(d.name)}</option>`).join('');
+    }
+    window.populatePartyNames = refreshTransferNames;
+    window.updateTreasuryPartyTypes = function(){
+        const s=document.getElementById('tx_party_type'); if(!s)return;
+        const old=s.value||'عميل', vals=['عميل','مورد','مصروفات','استحقاقات','موظف','أخرى'];
+        const map={'العملاء':'عميل','الموردين':'مورد','المصروفات':'مصروفات','الاستحقاقات':'استحقاقات','الموظفين':'موظف'};
+        (window.appData.dealers||[]).forEach(d=>{const v=map[d.type]||d.type;if(v&&!vals.includes(v))vals.push(v);});
+        s.innerHTML=vals.map(v=>`<option value="${esc(v)}">${v==='أخرى'?'أخرى / تحويل بين الخزن والحسابات':v==='مصروفات'?'مصروفات / أخرى':esc(v)}</option>`).join('');
+        s.value=vals.includes(old)?old:'عميل'; refreshTransferNames();
+    };
+    window.handleTreasuryMethodChange = function(){
+        if(typeof window.spellOutAmount==='function') window.spellOutAmount();
+        refreshTransferNames();
+    };
+    function makeEntry(base, type, account, other, role){
+        return {...base, type, paymentMethod:account, partyType:'أخرى', partyName:other, transferRole:role, transferAccount:other, currency:account==='خزنة الريال'?'SAR':'EGP'};
+    }
+    const previousAdd = window.addTreasuryTx;
+    window.addTreasuryTx = async function(event){
+        event.preventDefault();
+        const type=val('tx_party_type'), source=val('tx_payment_method'), destination=val('tx_party_name');
+        if(type!=='أخرى') return previousAdd.apply(this,arguments);
+        if(!source || !destination){alert('برجاء اختيار الحساب أو الخزنة المصدر والجهة الأخرى.');return;}
+        if(source===destination){alert('لا يمكن التحويل من الخزنة إلى نفسها.');return;}
+        const amount=num(val('tx_amount')); if(amount<=0){alert('برجاء إدخال مبلغ صحيح.');return;}
+        const base={voucherId:val('tx_voucher_id'),date:val('tx_date'),sarRate:num(val('tx_sar_rate'))||13.20,amount,notes:val('tx_notes'),amountSpelled:typeof numberToArabicWords==='function'?numberToArabicWords(amount,source==='خزنة الريال'?'SAR':'EGP'):'',transferId:'TR-'+Date.now()};
+        /* «صرف»: خروج من المصدر ودخول إلى الوجهة. «قبض»: عكس الاتجاه. */
+        const firstType=val('tx_type'), sourceType=firstType==='صرف'?'صرف':'قبض', destinationType=firstType==='صرف'?'قبض':'صرف';
+        try{
+            const sourceEntry=makeEntry(base,sourceType,source,destination,'source');
+            const destinationEntry=makeEntry(base,destinationType,destination,source,'destination');
+            const ids=await Promise.all([window.dbSave('treasury',sourceEntry),window.dbSave('treasury',destinationEntry)]);
+            sourceEntry.docId=ids[0]; destinationEntry.docId=ids[1];
+            window.appData.treasury=[...(window.appData.treasury||[]),sourceEntry,destinationEntry];
+            try{localStorage.setItem('nh_cache_treasury',JSON.stringify(window.appData.treasury));}catch(e){}
+            if(typeof window.renderTreasuryBalances==='function')window.renderTreasuryBalances();
+            if(typeof window.renderDashboardExtraCards==='function')window.renderDashboardExtraCards();
+            event.target.reset(); if(typeof initTreasuryForm==='function')initTreasuryForm();
+            alert('تم تسجيل التحويل بين الحسابين بحركتي قبض وصرف بنجاح.');
+        }catch(error){console.error(error);alert('تعذر حفظ التحويل: '+(error.message||error));}
+    };
+    function instantBalances(){
+        const data=window.appData.treasury||[], totals={};
+        data.forEach(x=>{const a=x.paymentMethod;if(!a)return;totals[a]=(totals[a]||0)+(x.type==='قبض'?1:-1)*num(x.amount);});
+        const set=(id,v,u)=>{const e=document.getElementById(id);if(e)e.innerText=v.toLocaleString()+' '+u;};
+        set('cash_egp_val',totals['خزنة الجنيه']||0,'ج.م'); set('cash_sar_val',totals['خزنة الريال']||0,'ر.س'); set('cash_supplies_val',totals['خزنة التوريدات']||0,'ج.م'); set('dash-bank-account',totals['حساب البنك']||0,'ج.م');
+    }
+    window.addEventListener('DOMContentLoaded',()=>{window.updateTreasuryPartyTypes();instantBalances();requestAnimationFrame(instantBalances);});
+    const oldQueue=window.queueRefresh; if(typeof oldQueue==='function')window.queueRefresh=function(){instantBalances();return oldQueue.apply(this,arguments);};
+})();
+</script>
+<script id="nh-invoice-numbering-and-balance-sheet">
+(function(){
+    function nextInvoiceNumber(prefix, records){
+        const nums=(records||[]).map(x=>String(x.invoiceNo||'')).filter(x=>x.indexOf(prefix)===0).map(x=>parseInt(x.slice(prefix.length),10)).filter(Number.isFinite);
+        const next=(nums.length?Math.max(...nums):0)+1;
+        return prefix+String(next).padStart(6,'0');
+    }
+    window.nextInvoiceNumber=nextInvoiceNumber;
+    function setInvoicePreview(){
+        const s=document.getElementById('inv_sale_invoice_no'), p=document.getElementById('inv_pur_invoice_no');
+        if(s)s.value=nextInvoiceNumber('INV-',window.appData?.sales_invoices||[]);
+        if(p)p.value=nextInvoiceNumber('PUR-',window.appData?.purchase_invoices||[]);
+    }
+    function money(v){return Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+    window.renderBalanceSheet=function(){
+        const d=window.appData||{}, treasury=d.treasury||[], sales=[...(d.sales_invoices||[])].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))), purchases=[...(d.purchase_invoices||[])].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+        const esc=v=>String(v??'-').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+        const amount=x=>Number(x.amount||x.totalEgp||0)||0;
+        const isParty=(x,name)=>String(x.partyType||x.accountType||'').includes(name)||String(x.typeName||'').includes(name);
+        const expenses=treasury.filter(x=>isParty(x,'مصروفات')).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+        const entitlements=treasury.filter(x=>isParty(x,'استحقاقات')).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+        const salesEgp=sales.reduce((a,x)=>a+Number(x.totalEgp||0),0), salesSar=sales.reduce((a,x)=>a+Number(x.totalSar||0),0);
+        const purchasesEgp=purchases.reduce((a,x)=>a+Number(x.totalEgp||0),0), purchasesSar=purchases.reduce((a,x)=>a+Number(x.totalSar||0),0);
+        const expenseEgp=expenses.filter(x=>x.currency!=='SAR').reduce((a,x)=>a+amount(x),0), expenseSar=expenses.filter(x=>x.currency==='SAR').reduce((a,x)=>a+amount(x),0);
+        const entitlementEgp=entitlements.filter(x=>x.currency!=='SAR').reduce((a,x)=>a+amount(x),0), entitlementSar=entitlements.filter(x=>x.currency==='SAR').reduce((a,x)=>a+amount(x),0);
+        const rate=treasury.map(x=>Number(x.sarRate)).find(x=>x>0)||13.20;
+        const salesTotalEgp=salesEgp+(salesSar*rate), purchasesTotalEgp=purchasesEgp+(purchasesSar*rate), expensesTotalEgp=expenseEgp+(expenseSar*rate), entitlementsTotalEgp=entitlementEgp+(entitlementSar*rate), netProfit=salesTotalEgp-purchasesTotalEgp-expensesTotalEgp;
+        const fmtDate=x=>typeof formatDateDMY==='function'?formatDateDMY(x):esc(x||'-');
+        const receipts=treasury.filter(x=>x.type==='قبض').sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))), payments=treasury.filter(x=>x.type==='صرف').sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+        const receiptsEgp=receipts.filter(x=>x.currency!=='SAR').reduce((a,x)=>a+amount(x),0), receiptsSar=receipts.filter(x=>x.currency==='SAR').reduce((a,x)=>a+amount(x),0), paymentsEgp=payments.filter(x=>x.currency!=='SAR').reduce((a,x)=>a+amount(x),0), paymentsSar=payments.filter(x=>x.currency==='SAR').reduce((a,x)=>a+amount(x),0), receiptsTotalEgp=receiptsEgp+(receiptsSar*rate), paymentsTotalEgp=paymentsEgp+(paymentsSar*rate);
+        const cards=[['إجمالي المبيعات',salesTotalEgp,'ج.م','success'],['إجمالي المشتريات',purchasesTotalEgp,'ج.م','warning'],['الوارد من سندات القبض',receiptsTotalEgp,'ج.م','success'],['المنصرف من سندات الصرف',paymentsTotalEgp,'ج.م','danger'],['صافي أرباح المبيعات',netProfit,'ج.م',netProfit>=0?'success':'danger']];
+        const box=document.getElementById('balanceSheetCards'); if(box)box.innerHTML=cards.map(c=>`<div class="metric-card ${c[3]}"><div class="metric-title">${c[0]}</div><div class="metric-value">${money(c[1])} ${c[2]}</div></div>`).join('');
+        const profitBox=document.getElementById('profitSummaryCards'); if(profitBox)profitBox.innerHTML=[['إجمالي المبيعات',salesTotalEgp,'success'],['إجمالي المشتريات',purchasesTotalEgp,'warning'],['الوارد من سندات القبض',receiptsTotalEgp,'success'],['المنصرف من سندات الصرف',paymentsTotalEgp,'danger'],['صافي الربح',netProfit,netProfit>=0?'success':'danger']].map(c=>`<div class="metric-card ${c[2]}"><div class="metric-title">${c[0]}</div><div class="metric-value">${money(c[1])} ج.م</div></div>`).join('');
+        const salesBody=document.querySelector('#balanceSalesTable tbody'); if(salesBody)salesBody.innerHTML=sales.map(x=>`<tr><td>${esc(x.invoiceNo)}</td><td>${fmtDate(x.date)}</td><td>${esc(x.client||x.accountParty)}</td><td>${esc(x.paymentType)}</td><td>${money(x.totalEgp)} ج.م</td><td>${money(x.totalSar)} ر.س</td></tr>`).join('')||'<tr><td colspan="6">لا توجد مبيعات مسجلة</td></tr>';
+        const purchasesBody=document.querySelector('#balancePurchasesTable tbody'); if(purchasesBody)purchasesBody.innerHTML=purchases.map(x=>`<tr><td>${esc(x.invoiceNo)}</td><td>${fmtDate(x.date)}</td><td>${esc(x.supplier||x.accountParty)}</td><td>${esc(x.paymentType)}</td><td>${money(x.totalEgp)} ج.م</td><td>${money(x.totalSar)} ر.س</td></tr>`).join('')||'<tr><td colspan="6">لا توجد مشتريات مسجلة</td></tr>';
+        const movementRows=list=>list.map(x=>`<tr><td>${fmtDate(x.date)}</td><td>${esc(x.partyName||x.accountParty||x.name||x.partyType)}</td><td>${esc(x.paymentMethod||x.accountName)}</td><td>${money(amount(x))}</td><td>${esc(x.currency||'EGP')}</td><td>${esc(x.notes||x.description)}</td></tr>`).join('')||'<tr><td colspan="6">لا توجد سجلات</td></tr>';
+        const receiptsBody=document.querySelector('#balanceReceiptsTable tbody'); if(receiptsBody)receiptsBody.innerHTML=movementRows(receipts);
+        const paymentsBody=document.querySelector('#balancePaymentsTable tbody'); if(paymentsBody)paymentsBody.innerHTML=movementRows(payments);
+        const total=(name,currency)=>treasury.filter(x=>x.paymentMethod===name&&(currency?x.currency===currency:true)).reduce((a,x)=>a+(x.type==='قبض'?1:-1)*amount(x),0);
+        const egp=total('خزنة الجنيه','EGP')+total('حساب البنك','EGP')+total('خزنة التوريدات','EGP'), sar=total('خزنة الريال','SAR');
+        const salesCredit=sales.filter(x=>x.paymentType==='آجل').reduce((a,x)=>a+Number(x.totalEgp||0),0), salesPaid=treasury.filter(x=>isParty(x,'عميل')&&x.type==='قبض'&&x.currency!=='SAR').reduce((a,x)=>a+amount(x),0), receivables=Math.max(0,salesCredit-salesPaid), purchasesCredit=purchases.filter(x=>x.paymentType==='آجل').reduce((a,x)=>a+Number(x.totalEgp||0),0), purchasePaid=treasury.filter(x=>isParty(x,'مورد')&&x.type==='صرف'&&x.currency!=='SAR').reduce((a,x)=>a+amount(x),0), payables=Math.max(0,purchasesCredit-purchasePaid), assets=egp+sar*rate+receivables, equity=assets-payables;
+        const body=document.querySelector('#balanceSheetTable tbody'); if(body)body.innerHTML=[['إجمالي المبيعات','إيراد',salesTotalEgp,'كل فواتير المبيعات بالجنيه والريال بعد التحويل'],['إجمالي المشتريات','تكلفة',purchasesTotalEgp,'كل فواتير المشتريات بالجنيه والريال بعد التحويل'],['الوارد من سندات القبض','تدفق نقدي وارد',receiptsTotalEgp,'جميع السندات التي نوعها قبض'],['المنصرف من سندات الصرف','تدفق نقدي صادر',paymentsTotalEgp,'جميع السندات التي نوعها صرف'],['الأصول والخزن','أصل متداول',assets,'الخزن والحسابات والعملاء'],['الموردون','التزام',payables,'المشتريات الآجلة ناقص المدفوعات'],['صافي أرباح المبيعات','نتيجة الأعمال',netProfit,'المبيعات ناقص المشتريات والمصروفات'],['حقوق الملكية','حقوق ملكية',equity,'الأصول ناقص الالتزامات']].map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${money(r[2])} ج.م</td><td>${r[3]}</td></tr>`).join('');
+    };
+    document.addEventListener('DOMContentLoaded',()=>{setTimeout(setInvoicePreview,0);setTimeout(()=>{setInvoicePreview();window.renderBalanceSheet();},350);});
+    const oldRenderSales=window.renderSalesInvoicesTable, oldRenderPurchases=window.renderPurchaseInvoicesTable;
+    window.renderSalesInvoicesTable=function(){if(typeof oldRenderSales==='function')oldRenderSales.apply(this,arguments);setInvoicePreview();};
+    window.renderPurchaseInvoicesTable=function(){if(typeof oldRenderPurchases==='function')oldRenderPurchases.apply(this,arguments);setInvoicePreview();};
+    const oldShow=window.showTab;
+    if(typeof oldShow==='function')window.showTab=function(id,btn){const r=oldShow.apply(this,arguments);if(id==='balance_sheet')setTimeout(window.renderBalanceSheet,0);return r;};
+})();
+</script>
 </body>
 </html>
