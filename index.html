@@ -253,6 +253,7 @@
         <button id="nav_invoices_sales" class="nav-btn" onclick="showTab('invoices_sales', this)">💵 6. فواتير المبيعات التفصيلية</button>
         <button id="nav_invoices_purchases" class="nav-btn" onclick="showTab('invoices_purchases', this)">🛒 7. فواتير المشتريات</button>
         <button id="nav_treasury" class="nav-btn" onclick="showTab('treasury', this)">💰 8. الخزنة والحسابات</button>
+        <button id="nav_treasury_transfers" class="nav-btn" onclick="showTab('treasury_transfers', this)">🔄 تحويل بين الخزن والبنك</button>
         <button id="nav_reports_menu_btn" class="nav-btn" onclick="toggleReportsMenu()">📈 9. التقارير والنسخ الاحتياطي ▾</button>
         <div id="reports_submenu" class="submenu-container">
             <button id="nav_reports" class="nav-btn sub-nav-btn" onclick="showTab('reports', this)">📈 التقارير والنسخ الاحتياطي</button>
@@ -4232,3 +4233,42 @@ function initTreasuryForm() {
 </script>
 
 </html>
+
+<script id="nh-treasury-transfer-screen">
+(function(){
+    const accounts=[['خزنة الجنيه','خزنة الجنيه المصري (EGP)','EGP'],['خزنة الريال','خزنة الريال السعودي (SAR)','SAR'],['خزنة التوريدات','خزنة التوريدات المستقلة','EGP'],['حساب البنك','حساب البنك','EGP']];
+    const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const val=id=>document.getElementById(id)?.value||'';
+    const n=v=>Number(v||0);
+    function addScreen(){
+        if(document.getElementById('treasury_transfers'))return;
+        const main=document.querySelector('.main-content'); if(!main)return;
+        const panel=document.createElement('div'); panel.id='treasury_transfers'; panel.className='tab-panel';
+        panel.innerHTML=`<h2>🔄 التحويل بين الخزن وحساب البنك</h2><br>
+        <div class="section-card" style="border-right:4px solid var(--accent);">
+          <h3>تسجيل قبض وصرف بين الخزن والحسابات</h3>
+          <p style="font-size:13px;color:var(--text-main);margin-bottom:14px;">سيتم تسجيل الحركة تلقائيًا كسند صرف من الحساب المصدر وسند قبض في الحساب المستلم، مع ربط السندين برقم تحويل واحد.</p>
+          <form id="treasuryTransferForm" class="form-grid">
+            <div class="form-group"><label>رقم التحويل</label><input id="tr_transfer_id" readonly style="background:var(--table-header-bg);font-weight:bold;"></div>
+            <div class="form-group"><label>التاريخ</label><input type="date" id="tr_date" required></div>
+            <div class="form-group"><label>الحساب / الخزنة المصدر</label><select id="tr_source" required>${accounts.map(a=>`<option value="${a[0]}" data-currency="${a[2]}">${a[1]}</option>`).join('')}</select></div>
+            <div class="form-group"><label>الحساب / الخزنة المستلم</label><select id="tr_destination" required>${accounts.map(a=>`<option value="${a[0]}" data-currency="${a[2]}">${a[1]}</option>`).join('')}</select></div>
+            <div class="form-group"><label>عملة المبلغ المصدر</label><select id="tr_currency"><option value="EGP">جنيه مصري EGP</option><option value="SAR">ريال سعودي SAR</option></select></div>
+            <div class="form-group"><label>مبلغ التحويل</label><input type="number" id="tr_amount" min="0.01" step="0.01" required placeholder="أدخل المبلغ"></div>
+            <div class="form-group"><label>معدل التحويل (1 ريال = كم جنيه)</label><input type="number" id="tr_rate" min="0.0001" step="0.01" value="13.20" required></div>
+            <div class="form-group"><label>المبلغ الذي سيصل للوجهة</label><input id="tr_destination_amount" readonly style="background:var(--table-header-bg);font-weight:bold;"></div>
+            <div class="form-group" style="grid-column:1/-1"><label>البيان والملاحظات</label><input type="text" id="tr_notes" placeholder="مثال: تحويل من خزنة الجنيه إلى البنك"></div>
+            <div style="grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><button type="submit" class="btn-submit btn-success" style="flex:2">💾 تسجيل القبض والصرف وربطهما</button><button type="button" class="btn-submit" style="background:#64748b;flex:1" onclick="document.getElementById('treasuryTransferForm').reset();window.initTreasuryTransferForm&&window.initTreasuryTransferForm()">تفريغ الحقول</button></div>
+          </form>
+        </div>
+        <div class="section-card"><h3>آخر التحويلات المسجلة</h3><div class="data-table-container"><table><thead><tr><th>رقم التحويل</th><th>التاريخ</th><th>المصدر</th><th>الوجهة</th><th>المبلغ المصدر</th><th>المبلغ المستلم</th><th>معدل التحويل</th></tr></thead><tbody id="treasuryTransferHistory"></tbody></table></div></div>`;
+        main.appendChild(panel);
+        window.initTreasuryTransferForm=()=>{const id=document.getElementById('tr_transfer_id'),date=document.getElementById('tr_date');if(id&&!id.value)id.value='TR-'+Date.now();if(date&&!date.value)date.value=new Date().toISOString().slice(0,10);updateAmount();renderHistory()};
+        function updateAmount(){const source=document.getElementById('tr_source'),dest=document.getElementById('tr_destination'),currency=val('tr_currency'),amount=n(val('tr_amount')),rate=n(val('tr_rate'))||13.20,sourceCurrency=source?.selectedOptions[0]?.dataset.currency||'EGP',destCurrency=dest?.selectedOptions[0]?.dataset.currency||'EGP';let result=amount;if(currency!==destCurrency){if(currency==='SAR'&&destCurrency==='EGP')result=amount*rate;else if(currency==='EGP'&&destCurrency==='SAR')result=amount/rate;}const out=document.getElementById('tr_destination_amount');if(out)out.value=result.toLocaleString('ar-EG',{maximumFractionDigits:2})+' '+(destCurrency==='SAR'?'ر.س':'ج.م');}
+        function renderHistory(){const tb=document.getElementById('treasuryTransferHistory');if(!tb)return;const rows={};(window.appData?.treasury||[]).filter(x=>x.transferId).forEach(x=>{rows[x.transferId]??={id:x.transferId,date:x.date,rate:x.sarRate,source:'-',destination:'-',sourceAmount:'-',destinationAmount:'-'};const r=rows[x.transferId];if(x.transferRole==='source'){r.source=x.paymentMethod;r.sourceAmount=(x.amount||0).toLocaleString()+' '+(x.currency==='SAR'?'ر.س':'ج.م')}if(x.transferRole==='destination'){r.destination=x.paymentMethod;r.destinationAmount=(x.amount||0).toLocaleString()+' '+(x.currency==='SAR'?'ر.س':'ج.م')}});tb.innerHTML=Object.values(rows).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,30).map(r=>`<tr><td>${esc(r.id)}</td><td>${esc(typeof formatDateDMY==='function'?formatDateDMY(r.date):r.date)}</td><td>${esc(r.source)}</td><td>${esc(r.destination)}</td><td>${esc(r.sourceAmount)}</td><td>${esc(r.destinationAmount)}</td><td>${n(r.rate).toLocaleString()}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center">لا توجد تحويلات مسجلة.</td></tr>'}
+        async function saveTransfer(e){e.preventDefault();const source=val('tr_source'),destination=val('tr_destination'),currency=val('tr_currency'),amount=n(val('tr_amount')),rate=n(val('tr_rate'))||13.20;if(source===destination)return alert('لا يمكن التحويل من الحساب إلى نفسه.');if(amount<=0)return alert('برجاء إدخال مبلغ صحيح.');const sourceOpt=document.getElementById('tr_source').selectedOptions[0],destOpt=document.getElementById('tr_destination').selectedOptions[0],sourceCurrency=sourceOpt.dataset.currency,destCurrency=destOpt.dataset.currency;let destAmount=amount;if(currency!==destCurrency){if(currency==='SAR'&&destCurrency==='EGP')destAmount=amount*rate;else if(currency==='EGP'&&destCurrency==='SAR')destAmount=amount/rate;}const transferId=val('tr_transfer_id')||'TR-'+Date.now(),date=val('tr_date')||new Date().toISOString().slice(0,10),notes=val('tr_notes')||`تحويل من ${source} إلى ${destination}`;const base={transferId,date,sarRate:rate,notes,partyType:'أخرى',transferType:'تحويل بين الخزن والحسابات',sourceAccount:source,destinationAccount:destination};const out={...base,voucherId:transferId+'-صرف',type:'صرف',paymentMethod:source,partyName:destination,transferRole:'source',transferAccount:destination,currency:currency,amount};const inc={...base,voucherId:transferId+'-قبض',type:'قبض',paymentMethod:destination,partyName:source,transferRole:'destination',transferAccount:source,currency:destCurrency,amount:destAmount};try{const ids=await Promise.all([window.dbSave('treasury',out),window.dbSave('treasury',inc)]);out.docId=ids?.[0];inc.docId=ids?.[1];window.appData.treasury=[...(window.appData.treasury||[]),out,inc];try{localStorage.setItem('nh_cache_treasury',JSON.stringify(window.appData.treasury))}catch(_){}if(window.renderTreasuryBalances)window.renderTreasuryBalances();if(window.renderDashboardExtraCards)window.renderDashboardExtraCards();if(window.renderIndependentStatements)window.renderIndependentStatements();alert('تم تسجيل حركة الصرف والقبض وربطها بين الحسابين بنجاح ✅');document.getElementById('treasuryTransferForm').reset();window.initTreasuryTransferForm()}catch(err){console.error(err);alert('تعذر حفظ التحويل: '+(err.message||err))}}
+        ['tr_source','tr_destination','tr_currency','tr_amount','tr_rate'].forEach(id=>panel.querySelector('#'+id)?.addEventListener('input',updateAmount));panel.querySelector('#treasuryTransferForm').addEventListener('submit',saveTransfer);window.initTreasuryTransferForm();
+    }
+    document.addEventListener('DOMContentLoaded',addScreen);if(document.readyState!=='loading')addScreen();
+})();
+</script>
