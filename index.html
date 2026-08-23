@@ -4697,7 +4697,7 @@ const date=x=>String(x.date||x.invoiceDate||x.createdAt||'').slice(0,10);
 const fmt=v=>num(v).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function invoiceRows(key){const out=[];arr(key).forEach(x=>{const eg=num(x.totalEgp),sar=num(x.totalSar);if(eg)out.push({...x,_currency:'EGP',_amount:eg});if(sar)out.push({...x,_currency:'SAR',_amount:sar});if(!eg&&!sar&&num(x.amount))out.push({...x,_currency:cur(x),_amount:num(x.amount)});});return out}
-function expenseRows(){const direct=arr('expenses');if(direct.length)return direct.map(x=>({...x,_currency:cur(x),_amount:num(x.amount??x.total??x.totalEgp??x.totalSar)})).filter(x=>x._amount);return arr('treasury').filter(x=>String(x.type||'').toLowerCase()==='صرف'&&!x.omrahPaymentId).map(x=>({...x,_currency:cur(x),_amount:num(x.amount)})).filter(x=>x._amount)}
+function expenseRows(){const direct=arr('expenses');if(direct.length)return direct.map(x=>({...x,_currency:cur(x),_amount:num(x.amount??x.total??x.totalEgp??x.totalSar)})).filter(x=>x._amount);return arr('treasury').filter(x=>String(x.type||'').toLowerCase()==='صرف'&&!x.omrahPaymentId&&!x.transferId&&/مصروف|expense/i.test(String(x.partyType||x.accountType||x.typeName||x.category||x.expenseType||x.notes||''))).map(x=>({...x,_currency:cur(x),_amount:num(x.amount)})).filter(x=>x._amount)}
 function filtered(a){const f=document.getElementById('tb_from')?.value||'',t=document.getElementById('tb_to')?.value||'';return a.filter(x=>(!f||date(x)>=f)&&(!t||date(x)<=t))}
 function selected(a){const c=document.getElementById('tb_currency')?.value||'ALL';return filtered(a).filter(x=>c==='ALL'||x._currency===c)}
 function totals(a){return {EGP:a.filter(x=>x._currency==='EGP').reduce((s,x)=>s+x._amount,0),SAR:a.filter(x=>x._currency==='SAR').reduce((s,x)=>s+x._amount,0)}}
@@ -4716,7 +4716,7 @@ window.__repairRenderTrial=renderFixed;function boot(){protectDoubleSaves();free
 'use strict';
 const A=k=>Array.isArray(window.appData?.[k])?window.appData[k]:[];const N=v=>{const n=Number(String(v??0).replace(/,/g,''));return Number.isFinite(n)?n:0};const C=x=>String(x.currency||x.currencyCode||'').toUpperCase()==='SAR'?'SAR':'EGP';const D=x=>String(x.date||x.invoiceDate||x.createdAt||'').slice(0,10);const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));const F=v=>N(v).toLocaleString('ar-EG',{minimumFractionDigits:2,maximumFractionDigits:2});
 function inv(k){const o=[];A(k).forEach(x=>{const eg=N(x.totalEgp),sr=N(x.totalSar);if(eg)o.push({...x,_cur:'EGP',_amt:eg});if(sr)o.push({...x,_cur:'SAR',_amt:sr});});return o}
-function expenses(){const a=A('expenses');if(a.length)return a.map(x=>({...x,_cur:C(x),_amt:N(x.amount??x.total??x.totalEgp??x.totalSar)})).filter(x=>x._amt);return A('treasury').filter(x=>String(x.type||'')==='صرف'&&!x.omrahPaymentId).map(x=>({...x,_cur:C(x),_amt:N(x.amount)})).filter(x=>x._amt)}
+function expenses(){const a=A('expenses');if(a.length)return a.map(x=>({...x,_cur:C(x),_amt:N(x.amount??x.total??x.totalEgp??x.totalSar)})).filter(x=>x._amt);return A('treasury').filter(x=>String(x.type||'')==='صرف'&&!x.omrahPaymentId&&!x.transferId&&/مصروف|expense/i.test(String(x.partyType||x.accountType||x.typeName||x.category||x.expenseType||x.notes||''))).map(x=>({...x,_cur:C(x),_amt:N(x.amount)})).filter(x=>x._amt)}
 function range(a){const f=document.getElementById('tb_from')?.value||'',t=document.getElementById('tb_to')?.value||'',c=document.getElementById('tb_currency')?.value||'ALL';return a.filter(x=>(!f||D(x)>=f)&&(!t||D(x)<=t)&&(c==='ALL'||x._cur===c))}
 function rowSales(x){return `<tr><td>${E(D(x))}</td><td>${E(x.client||x.accountParty||'غير محدد')}</td><td>${x._cur==='SAR'?'ريال سعودي':'جنيه مصري'}</td><td>${F(x._amt)}</td><td>${E(x.invoiceNo||x.notes||'')}</td></tr>`}
 function rowPurchases(x){return `<tr><td>${E(D(x))}</td><td>${E(x.supplier||x.accountParty||'غير محدد')}</td><td>${x._cur==='SAR'?'ريال سعودي':'جنيه مصري'}</td><td>${F(x._amt)}</td><td>${E(x.invoiceNo||x.notes||'')}</td></tr>`}
@@ -4834,4 +4834,252 @@ function renderRegistered(){const p=document.getElementById('trial_balance_panel
 function bind(){const n=document.getElementById('nav_trial_balance');if(n&&!n.dataset.restoreRegistered){n.dataset.restoreRegistered='1';n.addEventListener('click',()=>setTimeout(renderRegistered,150),true)}renderRegistered()}document.addEventListener('DOMContentLoaded',()=>setTimeout(bind,300));window.addEventListener('load',()=>setTimeout(bind,200));document.addEventListener('click',e=>{if(e.target.closest('#nav_trial_balance'))setTimeout(renderRegistered,200)});
 })();
 
+</script>
+
+<script id="nh-final-treasury-transfer-delete-fix">
+(function(){
+'use strict';
+const A=()=>Array.isArray(window.appData?.treasury)?window.appData.treasury:[];
+const N=v=>{const n=Number(String(v??0).replace(/,/g,''));return Number.isFinite(n)?n:0};
+const V=id=>document.getElementById(id)?.value||'';
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const accountCurrency=a=>a==='خزنة الريال'?'SAR':'EGP';
+function refresh(){
+  try{window.renderTreasuryTable?.();window.renderTreasuryBalances?.();window.renderDashboardExtraCards?.();window.__repairRenderTrial?.();window.renderIndependentStatements?.();}catch(e){console.warn('تعذر تحديث العرض بعد التعديل:',e)}
+}
+async function deleteTreasuryRecord(docId){
+  const item=A().find(x=>String(x.docId||'')===String(docId));
+  if(!item)return alert('السند غير موجود أو تم حذفه بالفعل.');
+  if(!confirm(item.transferId?'سيتم حذف طرفي التحويل معًا وإرجاع الأرصدة كما كانت. هل تريد المتابعة؟':'هل تريد حذف هذا السند؟ لا يمكن التراجع عن العملية.'))return;
+  const code=prompt('أدخل الرقم السري لتأكيد الحذف المالي:');
+  if(typeof getDeleteCode==='function' && String(code??'').trim()!==String(getDeleteCode()).trim())return alert('الرقم السري غير صحيح.');
+  const linked=item.transferId?A().filter(x=>x.transferId===item.transferId):[item];
+  try{
+    if(typeof window.dbDelete==='function'){
+      for(const x of linked){if(x.docId&&!String(x.docId).startsWith('local-'))await window.dbDelete('treasury',x.docId)}
+    }
+    const ids=new Set(linked.map(x=>String(x.docId||'')));
+    window.appData.treasury=A().filter(x=>!ids.has(String(x.docId||'')));
+    localStorage.setItem('nh_cache_treasury',JSON.stringify(window.appData.treasury));
+    refresh();
+    alert(item.transferId?'تم حذف طرفي التحويل معًا بنجاح.':'تم حذف السند بنجاح.');
+  }catch(err){alert('تعذر حذف السند: '+(err.message||err))}
+}
+const originalDelRow=window.delRow;
+window.delRow=async function(col,docId){
+  if(col==='treasury')return deleteTreasuryRecord(docId);
+  return originalDelRow?.(col,docId);
+};
+const oldAdd=window.addTreasuryTx;
+window.addTreasuryTx=async function(event){
+  const type=V('tx_party_type');
+  if(type!=='أخرى')return oldAdd?.apply(this,arguments);
+  event?.preventDefault();
+  const source=V('tx_payment_method'),destination=V('tx_party_name'),amount=N(V('tx_amount'));
+  if(!source||!destination)return alert('برجاء اختيار الخزنة أو الحساب المصدر والخزنة أو الحساب المستلم.');
+  if(source===destination)return alert('لا يمكن التحويل إلى نفس الخزنة أو الحساب.');
+  if(amount<=0)return alert('برجاء إدخال مبلغ صحيح أكبر من صفر.');
+  if(accountCurrency(source)!==accountCurrency(destination))return alert('لا يمكن تحويل مبلغ بين عملتين مختلفتين. اختر خزنتين أو حسابين بنفس العملة.');
+  const transferId='TR-'+Date.now()+'-'+Math.random().toString(36).slice(2,7);
+  const currency=accountCurrency(source),base={voucherId:V('tx_voucher_id'),date:V('tx_date'),sarRate:N(V('tx_sar_rate'))||13.20,amount,notes:V('tx_notes'),currency,transferId,transferType:'تحويل بين الخزن والحسابات',amountSpelled:typeof numberToArabicWords==='function'?numberToArabicWords(amount,currency):''};
+  const sourceEntry={...base,type:'صرف',paymentMethod:source,partyType:'أخرى',partyName:destination,transferRole:'source',transferAccount:destination};
+  const destinationEntry={...base,type:'قبض',paymentMethod:destination,partyType:'أخرى',partyName:source,transferRole:'destination',transferAccount:source};
+  try{
+    const ids=await Promise.all([window.dbSave('treasury',sourceEntry),window.dbSave('treasury',destinationEntry)]);
+    sourceEntry.docId=ids?.[0]||'local-'+Date.now()+'-1';destinationEntry.docId=ids?.[1]||'local-'+Date.now()+'-2';
+    window.appData.treasury=[...A(),sourceEntry,destinationEntry];
+    localStorage.setItem('nh_cache_treasury',JSON.stringify(window.appData.treasury));
+    refresh();event?.target?.reset?.();if(typeof initTreasuryForm==='function')initTreasuryForm();
+    alert('تم التحويل بنجاح: تم الخصم من المصدر والإضافة إلى الحساب المستلم.');
+  }catch(err){console.error(err);alert('تعذر حفظ التحويل: '+(err.message||err))}
+};
+function addTransferHint(){
+  const s=document.getElementById('tx_party_type'),p=document.getElementById('tx_payment_method'),n=document.getElementById('tx_party_name');
+  if(!s||!p||!n||document.getElementById('transfer-direction-hint'))return;
+  const h=document.createElement('small');h.id='transfer-direction-hint';h.style='grid-column:1/-1;color:var(--accent);font-weight:bold';h.textContent='عند اختيار «أخرى»: طريقة الدفع = الخزنة/الحساب المصدر، والاسم = الخزنة/الحساب المستلم؛ سيتم الخصم والإضافة تلقائيًا.';n.closest('.form-group')?.after(h);
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(addTransferHint,100));
+})();
+</script>
+<script id="nh-currency-summary-labels">
+(function(){
+function label(){const p=document.getElementById('trial_balance_panel');if(!p)return;const c=document.getElementById('tb_currency')?.value||'ALL',u=c==='SAR'?' ر.س':c==='EGP'?' ج.م':'';['tb_sales','tb_purchases','tb_expenses','tb_profit','tb_debit','tb_credit','tb_difference'].forEach(id=>{const e=document.getElementById(id);if(e&&!e.textContent.includes('ج.م')&&!e.textContent.includes('ر.س')&&u)e.textContent+=u})}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(label,300));setInterval(label,500);})();
+</script>
+<style id="nh-transfer-delete-style">#treasuryTable .btn-del{margin-right:6px}.transfer-direction-hint{display:block}</style>
+
+<script id="nh-bank-vault-statement-delete-fix">
+(function(){
+'use strict';
+const tableId='bvs_table';
+const treasury=()=>Array.isArray(window.appData?.treasury)?window.appData.treasury:[];
+const clean=v=>String(v??'').trim();
+function findRecord(key){
+  const value=clean(key),data=treasury();
+  return data.find(x=>clean(x.docId)===value)||data.find(x=>clean(x.voucherId)===value);
+}
+window.deleteBankVaultOperation=async function(key){
+  const item=findRecord(key);
+  if(!item)return alert('تعذر تحديد العملية المطلوبة للحذف.');
+  if(typeof window.delRow==='function'){
+    await window.delRow('treasury',item.docId||item.voucherId);
+  }else{
+    alert('تعذر تنفيذ الحذف لأن دالة الحذف غير متاحة.');
+    return;
+  }
+  setTimeout(ensureDeleteButtons,150);
+};
+function ensureDeleteButtons(){
+  const table=document.getElementById(tableId),head=table?.querySelector('thead tr'),body=table?.querySelector('tbody');
+  if(!table||!head||!body)return;
+  if(!head.querySelector('[data-bvs-action-head]')){
+    const th=document.createElement('th');th.textContent='العمليات';th.dataset.bvsActionHead='1';head.appendChild(th);
+  }
+  body.querySelectorAll('tr').forEach(row=>{
+    const cells=row.children;
+    if(cells.length<8||row.querySelector('[data-bvs-delete]'))return;
+    const voucher=clean(cells[1]?.textContent);
+    const action=document.createElement('td');
+    const btn=document.createElement('button');
+    btn.type='button';btn.className='btn-del';btn.dataset.bvsDelete='1';btn.dataset.bvsKey=voucher;btn.textContent='حذف';
+    btn.title='حذف العملية';
+    action.appendChild(btn);row.appendChild(action);
+  });
+}
+document.addEventListener('click',function(e){
+  const btn=e.target.closest?.('[data-bvs-delete]');
+  if(!btn)return;
+  e.preventDefault();e.stopPropagation();
+  window.deleteBankVaultOperation(btn.dataset.bvsKey);
+},true);
+function boot(){ensureDeleteButtons();}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,2000));
+new MutationObserver(boot).observe(document.documentElement,{subtree:true,childList:true});
+setInterval(boot,700);
+})();
+</script>
+<style id="nh-bank-vault-delete-style">#bvs_table th:last-child,#bvs_table td:last-child{text-align:center;min-width:90px}#bvs_table .btn-del{white-space:nowrap}</style>
+
+<script id="nh-omrah-total-settlement-sync">
+(function(){
+'use strict';
+const A=k=>Array.isArray(window.appData?.[k])?window.appData[k]:[];
+const N=v=>{const n=Number(String(v??0).replace(/,/g,''));return Number.isFinite(n)?n:0};
+const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const M=v=>N(v).toLocaleString('ar-EG',{maximumFractionDigits:2});
+function roomKey(v){const s=String(v||'').trim();return s||'رباعي'}
+function priceValue(obj,room){
+  if(!obj)return 0;
+  const r=roomKey(room),map={
+    'رباعي':['quadPrice','quad_price','priceQuad','quad','fourPrice','four'],
+    'ثلاثي':['triplePrice','triple_price','priceTriple','triple','threePrice','three'],
+    'ثنائي':['doublePrice','double_price','priceDouble','double','twoPrice','two'],
+    'خماسي':['quintPrice','quint_price','priceQuint','quint','quadPrice','quad']
+  };
+  for(const k of (map[r]||[])){const n=N(obj[k]);if(n>0)return n}
+  return 0;
+}
+function programFor(name){
+  const lists=[A('omrah_programs'),A('hajj'),A('shared_hajj')].flat();
+  return lists.find(x=>String(x.name||x.programName||'').trim()===String(name||'').trim())||null;
+}
+function passengerSale(trip){
+  const direct=['salePrice','sellingPrice','totalPrice','individualPrice','price','amount','dueAmount'];
+  for(const k of direct){const n=N(trip?.[k]);if(n>0)return n}
+  return priceValue(programFor(trip?.programName),trip?.roomType);
+}
+function selectedData(){
+  const selected=document.getElementById('ts_total_trip_select')?.value||'';
+  if(!selected)return null;
+  const parts=selected.split('::'),kind=parts[0],name=parts.slice(1).join('::');
+  if(kind==='omrah'){
+    const passengers=A('omrah_trips').filter(x=>String(x.programName||'').trim()===String(name).trim());
+    return {kind,name,passengers,supplies:[],program:programFor(name)};
+  }
+  const passengers=((kind==='shared'?A('shared_trip_data'):A('trip_data'))||[]).filter(p=>p.tripName===name);
+  const supplies=A('trip_supplies').filter(x=>x.tripName===name&&(x.tripType||kind)===kind);
+  const program=((kind==='shared'?A('shared_hajj'):A('hajj'))||[]).find(x=>x.name===name);
+  return {kind,name,passengers,supplies,program};
+}
+function paymentRows(data){
+  if(!data)return [];
+  if(data.kind==='omrah'){
+    const ids=new Set(data.passengers.map(x=>String(x.docId||x.pilgrimName||'')));
+    return A('omrah_payments').filter(x=>ids.has(String(x.tripId||x.pilgrimName||''))||String(x.programName||'').trim()===String(data.name).trim());
+  }
+  const name=data.name;
+  return A('treasury').filter(x=>x.paymentMethod==='خزنة التوريدات'&&x.type==='قبض'&&(x.tripName===name||String(x.notes||'').includes(name)||String(x.description||'').includes(name)));
+}
+function renderSync(){
+  const cards=document.getElementById('tripTotalSettlementCards'),detail=document.getElementById('tripTotalSettlementDetails'),data=selectedData();
+  if(!cards||!detail)return;
+  if(!data){cards.innerHTML='';detail.style.display='none';return}
+  const payments=paymentRows(data),sale={EGP:0,SAR:0},supply={EGP:0,SAR:0},expenses={EGP:0,SAR:0};
+  data.passengers.forEach(p=>{
+    const price=passengerSale(p),currency=String(p.currency||p.saleCurrency||'EGP').toUpperCase()==='SAR'?'SAR':'EGP';
+    sale[currency]+=price*(N(p.passengerCount)||1);
+  });
+  data.supplies.forEach(x=>{const c=String(x.currency||'EGP').toUpperCase()==='SAR'?'SAR':'EGP';supply[c]+=N(x.amount??x.total??x.netAmount) });
+  payments.forEach(x=>{const c=String(x.currency||'EGP').toUpperCase()==='SAR'?'SAR':'EGP';supply[c]+=N(x.amount)});
+  const paymentIds=new Set(payments.map(x=>String(x.docId||'')));
+  A('treasury').filter(x=>x.type==='صرف'&&x.omrahPaymentId&&paymentIds.has(String(x.omrahPaymentId))).forEach(x=>{const c=String(x.currency||'EGP').toUpperCase()==='SAR'?'SAR':'EGP';expenses[c]+=N(x.amount)});
+  const net={EGP:sale.EGP-expenses.EGP,SAR:sale.SAR-expenses.SAR};
+  const money=(v,c)=>`${M(v)} ${c==='SAR'?'ر.س':'ج.م'}`;
+  const dual=(v)=>`ج.م: ${M(v.EGP)} | ر.س: ${M(v.SAR)}`;
+  cards.innerHTML=[['إجمالي سعر البيع',dual(sale),'var(--success)'],['إجمالي التوريدات',dual(supply),'var(--accent)'],['إجمالي مصروفات الرحلة',dual(expenses),'var(--danger)'],['صافي الربح',dual(net),net.EGP>=0&&net.SAR>=0?'var(--success)':'var(--danger)']].map(c=>`<div class="metric-card" style="border:1px solid var(--border-color)"><div class="metric-title">${c[0]}</div><div class="metric-value" style="color:${c[2]};font-size:15px">${c[1]}</div></div>`).join('');
+  const rows=[];
+  data.passengers.forEach(p=>{const price=passengerSale(p),c=String(p.currency||p.saleCurrency||'EGP').toUpperCase()==='SAR'?'SAR':'EGP';rows.push(`<tr><td>بيع معتمر عمرة</td><td>${E(p.date||p.travelDate||'-')}</td><td>${E(p.pilgrimName||'-')}<br><small>${E(p.agentName||'-')}</small></td><td>${E(p.roomType||'-')}</td><td>1</td><td>${money(price,c)}</td><td>0</td><td>${money(price,c)}</td><td>${E(p.notes||'من تسجيل معتمر في رحلة عمرة')}</td></tr>`)});
+  data.supplies.forEach(x=>{const c=String(x.currency||'EGP').toUpperCase()==='SAR'?'SAR':'EGP';rows.push(`<tr><td>توريد تصفية</td><td>${E(x.date||'-')}</td><td>${E(x.agentName||x.partyName||'-')}</td><td>${E(x.roomType||'-')}</td><td>${E(x.passengerCount||0)}</td><td>${money(x.individualPrice||0,c)}</td><td>${money(x.commission||0,c)}</td><td>${money(x.amount||0,c)}</td><td>${E(x.notes||'-')}</td></tr>`)});
+  payments.forEach(x=>{const c=String(x.currency||'EGP').toUpperCase()==='SAR'?'SAR':'EGP';rows.push(`<tr><td>دفعة معتمر عمرة</td><td>${E(x.date||'-')}</td><td>${E(x.pilgrimName||x.partyName||'-')}<br><small>${E(x.agentName||'-')}</small></td><td>-</td><td>1</td><td>${money(x.amount,c)}</td><td>0</td><td>${money(x.amount,c)}</td><td>${E(x.notes||'من تسجيل دفعة لمعتمر')}</td></tr>`)});
+  detail.style.display='block';detail.querySelector('tbody').innerHTML=rows.join('')||'<tr><td colspan="9" style="text-align:center;padding:20px">لا توجد بيانات لهذه الرحلة.</td></tr>';
+}
+window.updateTotalTripSelect=function(){
+  const select=document.getElementById('ts_total_trip_select');if(!select)return;const current=select.value;
+  const normal=[...A('hajj').map(x=>x.name),...A('trip_data').map(x=>x.tripName),...A('trip_supplies').filter(x=>(x.tripType||'normal')==='normal').map(x=>x.tripName)];
+  const shared=[...A('shared_hajj').map(x=>x.name),...A('shared_trip_data').map(x=>x.tripName),...A('trip_supplies').filter(x=>x.tripType==='shared').map(x=>x.tripName)];
+  const omrah=[...new Set(A('omrah_trips').map(x=>x.programName).filter(Boolean))];
+  const opts=[...new Set(normal.filter(Boolean))].map(n=>({key:'normal::'+n,label:'رحلة عادية: '+n})).concat([...new Set(shared.filter(Boolean))].map(n=>({key:'shared::'+n,label:'رحلة مشتركة: '+n}))).concat(omrah.map(n=>({key:'omrah::'+n,label:'رحلة عمرة: '+n})));
+  select.innerHTML='<option value="">اختر الرحلة...</option>'+opts.map(o=>`<option value="${E(o.key)}">${E(o.label)}</option>`).join('');select.value=opts.some(o=>o.key===current)?current:'';
+};
+window.renderTripTotalSettlement=renderSync;
+function boot(){window.updateTotalTripSelect?.();renderSync()}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,1200));
+setInterval(()=>{if(document.getElementById('trip_total_settlement')){window.updateTotalTripSelect?.();renderSync()}},1200);
+})();
+</script>
+
+<script id="nh-omrah-single-save-final">
+(function(){
+'use strict';
+const A=k=>Array.isArray(window.appData?.[k])?window.appData[k]:[];
+const N=v=>{const n=Number(String(v??0).replace(/,/g,''));return Number.isFinite(n)?n:0};
+const norm=v=>String(v??'').trim().replace(/\s+/g,' ').toLowerCase();
+function paymentKey(x){return [x.tripId||x.pilgrimName||'',N(x.amount),String(x.currency||'EGP').toUpperCase(),x.date||''].map(norm).join('|')}
+function setLocked(form,locked){
+  if(!form)return;
+  form.dataset.nhSaving=locked?'1':'0';
+  form.querySelectorAll('button[type="submit"]').forEach(b=>{b.disabled=locked;b.dataset.nhOriginalText??=b.innerHTML;if(locked)b.innerHTML='⏳ جارٍ الحفظ...';else if(b.dataset.nhOriginalText)b.innerHTML=b.dataset.nhOriginalText});
+}
+function release(form){setTimeout(()=>setLocked(form,false),4500)}
+function installTripGuard(){
+  const f=document.getElementById('omrahTripForm');if(!f||f.dataset.nhSingleSave)return;f.dataset.nhSingleSave='1';
+  f.addEventListener('click',e=>{if(!e.target.closest('button[type="submit"]'))return;if(f.dataset.nhSaving==='1'){e.preventDefault();e.stopImmediatePropagation();return alert('جاري حفظ بيانات المعتمر، انتظر لحظات ولا تضغط مرة أخرى.')}setLocked(f,true);release(f)},true);
+  f.addEventListener('reset',()=>setTimeout(()=>setLocked(f,false),50));
+}
+function installPaymentGuard(){
+  const f=document.getElementById('of_payment_form');if(!f||f.dataset.nhSingleSave)return;f.dataset.nhSingleSave='1';
+  f.addEventListener('click',e=>{if(!e.target.closest('button[type="submit"]'))return;if(f.dataset.nhSaving==='1'){e.preventDefault();e.stopImmediatePropagation();return alert('جاري حفظ الدفعة، انتظر لحظات ولا تضغط مرة أخرى.')}setLocked(f,true);release(f)},true);
+  f.addEventListener('submit',e=>{
+    const id=document.getElementById('of_trip')?.value||'',trip=A('omrah_trips').find(x=>String(x.docId||x.pilgrimName)===String(id));
+    const candidate={tripId:trip?.docId||trip?.pilgrimName||id,pilgrimName:trip?.pilgrimName||'',amount:N(document.getElementById('of_amount')?.value),currency:document.getElementById('of_currency')?.value||'EGP',date:document.getElementById('of_date')?.value||''};
+    if(!trip)return;
+    const duplicate=A('omrah_payments').some(x=>paymentKey(x)===paymentKey(candidate));
+    if(duplicate){e.preventDefault();e.stopImmediatePropagation();setLocked(f,false);alert('هذه الدفعة مسجلة بالفعل لنفس المعتمر بنفس المبلغ والعملة والتاريخ، ولن يتم حفظها مرة أخرى.');return false}
+  },true);
+  f.addEventListener('reset',()=>setTimeout(()=>setLocked(f,false),50));
+}
+function boot(){installTripGuard();installPaymentGuard()}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,1000));
+setInterval(boot,700);
+})();
 </script>
