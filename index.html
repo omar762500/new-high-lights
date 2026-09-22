@@ -164,8 +164,15 @@
 
         .hidden { display: none !important; }
         /* إظهار الأقسام غير المصرح بها بشكل مموه مع منع فتحها أو التفاعل معها */
-        .permission-restricted { filter: blur(4px); opacity: .55; pointer-events: none !important; user-select: none !important; }
-        .nav-btn.permission-restricted { filter: blur(1.5px); opacity: .48; cursor: not-allowed !important; }
+        .permission-restricted { filter: blur(5px); opacity: .52; pointer-events: none !important; user-select: none !important; }
+        /* الخيارات غير المصرح بها تظل ظاهرة للمستخدم لكن ببلور واضح، مع منع فتحها */
+        .sidebar .nav-btn.permission-restricted,
+        .sidebar .nav-btn[data-permission-allowed="0"] { filter: blur(4px); opacity: .42; cursor: not-allowed !important; pointer-events: none !important; }
+        .sidebar .submenu-container .nav-btn.permission-restricted,
+        .sidebar .submenu-container .nav-btn[data-permission-allowed="0"] { filter: blur(3.5px); opacity: .40; }
+        /* لا نخفي القوائم الفرعية؛ كل الاختيارات تظل مرئية، وغير المصرح منها مموه فقط */
+        .sidebar .submenu-container.nh-permission-options-visible { display: flex !important; }
+        .sidebar .nav-btn.nh-permission-option { display: flex !important; }
         .permission-lock-note { display:none; padding:10px 14px; margin-bottom:12px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; border-radius:8px; font-weight:700; }
         .tab-panel.permission-restricted .permission-lock-note { display:block; }
 
@@ -1499,6 +1506,16 @@ html body .sidebar > .submenu-container.open{display:flex !important;flex-direct
                 const menu = document.getElementById(menuId);
                 if (menu) menu.style.display = permissions.some(permission => allowedFor(permission)) ? '' : 'none';
             });
+
+            /* حماية طباعة البرنامج الشاملة: متاحة للأدمن فقط، مع إخفاء الزرين للموظف. */
+            const canPrintFullProgram = !!(currentUser || window.currentUser) &&
+                ((currentUser || window.currentUser).role === 'manager');
+            document.querySelectorAll('#nh_print_all_program, #nh_print_all_program_side').forEach(button => {
+                button.hidden = !canPrintFullProgram;
+                button.disabled = !canPrintFullProgram;
+                button.setAttribute('aria-hidden', canPrintFullProgram ? 'false' : 'true');
+                button.title = canPrintFullProgram ? 'طباعة ملخص وتقارير جميع أقسام البرنامج' : 'طباعة البرنامج متاحة للأدمن فقط';
+            });
         }
         let permissionApplyQueued = false;
         function installPermissionObserver() {
@@ -1509,15 +1526,30 @@ html body .sidebar > .submenu-container.open{display:flex !important;flex-direct
             observer.observe(sidebar,{childList:true,subtree:true});
         }
         function openFirstAllowedTab() {
-            const preferred = ['dashboard','hajj','trip_data','omrah_trips','shared_hajj','shared_trip_data','hotels','invoices_sales','invoices_purchases','treasury','reports','report_accounts','users_management','trip_supplies','balance_sheet'];
-            const first = preferred.find(id => hasPermission(id));
-            if (!first) return;
+            /* لا نترك dashboard مفتوحًا لمجرد أنه active في HTML؛ نختار شاشة لها صلاحية فعلية. */
+            const preferred = ['dashboard','hotels','hajj','trip_data','omrah_trips','omrah_finance','shared_hajj','shared_trip_data','dealers_page','invoices_sales','invoices_purchases','treasury','treasury_transfers','reports','report_clients','report_suppliers','report_accounts','trip_supplies','trip_total_settlement','installments','balance_sheet','users_management'];
+            const canOpen = id => hasPermission(id) ||
+                (['report_clients','report_suppliers'].includes(id) && hasPermission('reports')) ||
+                (id === 'treasury_transfers' && hasPermission('treasury'));
+            let first = preferred.find(id => canOpen(id) && document.getElementById(id));
+            if (!first) {
+                const candidate = [...document.querySelectorAll('.sidebar .nav-btn[id^="nav_"]')]
+                    .map(btn => btn.id.replace(/^nav_/, ''))
+                    .find(id => canOpen(id) && document.getElementById(id));
+                first = candidate;
+            }
             document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
             document.querySelectorAll('.sidebar button').forEach(button => button.classList.remove('active'));
+            if (!first) {
+                const main = document.querySelector('.main-content');
+                if (main) main.insertAdjacentHTML('afterbegin','<div class="permission-lock-note" style="display:block">لا توجد شاشة مخصصة لهذا المستخدم. يرجى تكليف الأدمن بصلاحية واحدة على الأقل.</div>');
+                return;
+            }
             const panel = document.getElementById(first);
             const button = document.getElementById('nav_' + first);
             if (panel) panel.classList.add('active');
             if (button) button.classList.add('active');
+            renderVisibleData();
         }
 
         function normalizeLoginValue(value) {
@@ -1670,6 +1702,7 @@ html body .sidebar > .submenu-container.open{display:flex !important;flex-direct
                 document.getElementById('current_user_display').innerText = found.name || 'مستخدم';
                 document.getElementById('current_role_display').innerText = found.role === 'manager' ? 'أدمن / مشرف' : 'موظف';
                 applyUserPermissions();
+                window.nhRefreshPermissions?.();
                 renderUsersManagement();
                 openFirstAllowedTab();
                 alert('تم تسجيل الدخول بنجاح! أهلاً بك ' + (found.name || ''));
@@ -3866,7 +3899,7 @@ function initTreasuryForm() {
             const failures=[];
             for(const [id] of removable){try{if(window.dbDeleteUser)await window.dbDeleteUser(id)}catch(error){failures.push(id)}}
             if(currentUser && removable.some(([id])=>id===currentUser.id)){currentUser=null;window.currentUser=null;document.getElementById('loginOverlay').style.display='flex'}
-            renderUsersManagement();applyUserPermissions();
+            renderUsersManagement();applyUserPermissions();window.nhRefreshPermissions?.();
             alert(failures.length?`تم الحذف محليًا، وتعذر حذف ${failures.length} حساب مركزيًا.`:'تم حذف جميع حسابات الموظفين والإبقاء على الأدمن فقط.');
         }
 
@@ -3875,7 +3908,8 @@ function initTreasuryForm() {
             const id='usr_'+Date.now();
             const users=getUsersConfig();
             const permissions=[...document.querySelectorAll('#new_user_permissions input:checked')].map(x=>x.value);
-            const userData={username:document.getElementById('new_user_username').value.trim(),password:document.getElementById('new_user_password').value,name:document.getElementById('new_user_name').value.trim(),role:document.getElementById('new_user_role').value,permissions};
+            const role=document.getElementById('new_user_role').value;
+            const userData={username:document.getElementById('new_user_username').value.trim(),password:document.getElementById('new_user_password').value,name:document.getElementById('new_user_name').value.trim(),role,permissions:role==='manager'?['*']:permissions};
             if(Object.values(users).some(u=>u.username===userData.username)) return alert('اسم المستخدم موجود بالفعل.');
             users[id]=userData;
             saveUsersConfig(users);
@@ -3914,6 +3948,7 @@ function initTreasuryForm() {
                 currentUser = { ...activeBeforeUpdate, ...users[target], id:target };
                 window.currentUser = currentUser;
                 applyUserPermissions();
+                window.nhRefreshPermissions?.();
             }
             try {
                 if(window.dbSaveUser) await window.dbSaveUser(target, users[target]);
@@ -4690,7 +4725,13 @@ const E=v=>String(v??'-').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&g
 const A=k=>Array.isArray(window.appData?.[k])?window.appData[k]:[];
 function table(title,headers,rows){return `<section><h2>${title}</h2><table><thead><tr>${headers.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.length?rows.map(r=>`<tr>${r.map(x=>`<td>${E(x)}</td>`).join('')}</tr>`).join(''):`<tr><td colspan="${headers.length}">لا توجد بيانات.</td></tr>`}</tbody></table></section>`}
 function build(){const trips=A('trip_data'),plans=A('installments'),sales=A('sales_invoices'),purchases=A('purchase_invoices'),treasury=A('treasury'),dealers=A('dealers'),vault=A('installment_vault');let html='<h1>تقرير شامل لجميع بيانات البرنامج</h1><p class="date">تاريخ الطباعة: '+new Date().toLocaleString('ar-EG')+'</p>';html+=table('ملخص البرنامج',['البيان','العدد'],[['الرحلات والمعتمرون',trips.length],['خطط الأقساط',plans.length],['فواتير المبيعات',sales.length],['فواتير المشتريات',purchases.length],['حركات الخزنة',treasury.length],['المتعاملون',dealers.length],['عمليات خزنة الأقساط',vault.length]]);html+=table('إدارة الرحلات والمعتمرون',['الرحلة','المعتمر','الهاتف','الجواز','النوع','الفئة','الغرفة','الحالة','تاريخ السفر'],trips.map(x=>[x.tripName,x.passengerName,x.phone,x.passportNo,x.gender,x.ageCategory,x.roomType,x.roomNumber&&x.roomNumber!=='-'?'تم التسكين':'لم يسكن',x.travelDate]));html+=table('خطط الأقساط',['العميل','الإجمالي','المقدم','المتبقي','العملة','عدد الأقساط'],plans.map(x=>[x.pilgrimName,x.totalAmount,x.downPayment,x.remainingAmount,'جنيه مصري',(x.schedule||[]).length]));html+=table('فواتير المبيعات',['رقم الفاتورة','التاريخ','العميل','الإجمالي'],sales.map(x=>[x.invoiceNo||x.no,x.date,x.partyName||x.customerName,x.totalEgp||x.total]));html+=table('فواتير المشتريات',['رقم الفاتورة','التاريخ','المورد','الإجمالي'],purchases.map(x=>[x.invoiceNo||x.no,x.date,x.partyName||x.supplierName,x.totalEgp||x.total]));html+=table('حركات الخزنة',['رقم السند','التاريخ','النوع','الخزنة/الحساب','الجهة','المبلغ','العملة'],treasury.map(x=>[x.voucherId,x.date,x.type,x.paymentMethod,x.partyName,x.amount,x.currency]));html+=table('المتعاملون',['الاسم','النوع','الهاتف','الرصيد'],dealers.map(x=>[x.name||x.partyName,x.type||x.partyType,x.phone,x.balance||0]));return html}
-function printAll(){const frame=document.createElement('iframe');frame.id='nh_print_all_frame';frame.style.cssText='position:fixed;right:-10000px;bottom:0;width:1px;height:1px;border:0';document.body.appendChild(frame);const d=frame.contentDocument;d.open();d.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>طباعة البرنامج بالكامل</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial;color:#111}h1{text-align:center;border-bottom:3px solid #1d4ed8;padding:12px}h2{color:#1d4ed8;border-bottom:1px solid #aaa;padding:8px;margin-top:25px}p.date{text-align:center;color:#555}table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:18px}th,td{border:1px solid #555;padding:5px;text-align:right}th{background:#dbeafe;font-weight:bold}section{page-break-inside:auto}tr{page-break-inside:avoid}</style></head><body>${build()}
+function printAll(){
+        const user = window.currentUser;
+        if(!user || user.role !== 'manager'){
+            alert('طباعة البرنامج بالكامل متاحة للأدمن / المشرف فقط.');
+            return;
+        }
+        const frame=document.createElement('iframe');frame.id='nh_print_all_frame';frame.style.cssText='position:fixed;right:-10000px;bottom:0;width:1px;height:1px;border:0';document.body.appendChild(frame);const d=frame.contentDocument;d.open();d.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>طباعة البرنامج بالكامل</title><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial;color:#111}h1{text-align:center;border-bottom:3px solid #1d4ed8;padding:12px}h2{color:#1d4ed8;border-bottom:1px solid #aaa;padding:8px;margin-top:25px}p.date{text-align:center;color:#555}table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:18px}th,td{border:1px solid #555;padding:5px;text-align:right}th{background:#dbeafe;font-weight:bold}section{page-break-inside:auto}tr{page-break-inside:avoid}</style></head><body>${build()}
 
 
 
@@ -4902,6 +4943,113 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,1700));window.a
 
 
 
+<style id="nh-print-permission-style">@media print{body.nh-print-blocked{display:none !important}}</style>
+<script id="nh-print-permission-guard">
+(function(){
+    'use strict';
+    function canPrintFullProgram(){
+        const user = window.currentUser;
+        return !!user && user.role === 'manager';
+    }
+    /* منع Ctrl/Cmd+P وفتح حوار الطباعة من الشاشة الرئيسية للموظف،
+       مع ترك أزرار الطباعة الخاصة بالمستندات تعمل في نوافذها المستقلة. */
+    document.addEventListener('keydown', function(event){
+        if((event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === 'p' && !canPrintFullProgram()){
+            event.preventDefault();
+            event.stopPropagation();
+            alert('طباعة البرنامج بالكامل متاحة للأدمن / المشرف فقط.');
+        }
+    }, true);
+    window.addEventListener('beforeprint', function(event){
+        if(!canPrintFullProgram()){
+            document.body.classList.add('nh-print-blocked');
+        }
+    });
+    window.addEventListener('afterprint', function(){ document.body.classList.remove('nh-print-blocked'); });
+})();
+</script>
+<script id="nh-hard-permission-guard">
+(function(){
+    'use strict';
+    const map = {
+        nav_dashboard:'dashboard', nav_hotels:'hotels', nav_hajj:'hajj', nav_trip_data:'trip_data',
+        nav_dealers:'dealers_page', nav_invoices_sales:'invoices_sales', nav_invoices_purchases:'invoices_purchases',
+        nav_treasury:'treasury', nav_treasury_transfers:'treasury_transfers', nav_reports:'reports',
+        nav_report_clients:'report_clients', nav_report_suppliers:'report_suppliers', nav_report_accounts:'report_accounts',
+        nav_users:'users_management', nav_trip_total_settlement:'trip_total_settlement', nav_trip_supplies:'trip_supplies',
+        nav_installments:'installments', nav_balance_sheet:'balance_sheet'
+    };
+    const aliases = {
+        treasury_transfers:'treasury', report_clients:'reports', report_suppliers:'reports',
+        bankVaultStatementPanel:'report_accounts'
+    };
+    function user(){ return window.currentUser || null; }
+    function allowed(permission){
+        const u=user();
+        if(!u) return false;
+        if(u.role==='manager' || (Array.isArray(u.permissions) && u.permissions.includes('*'))) return true;
+        const list=Array.isArray(u.permissions)?u.permissions:[];
+        return list.includes(permission) || (!!aliases[permission] && list.includes(aliases[permission]));
+    }
+    function permissionForButton(button){
+        if(!button) return null;
+        if(map[button.id]) return map[button.id];
+        const raw=button.id.replace(/^nav_/,'');
+        if(raw==='reports_menu_btn') return 'reports';
+        if(raw==='trip_supplies_menu_btn') return 'trip_supplies';
+        if(raw==='shared_menu_btn' || raw==='shared_trip_menu_btn') return 'shared_trip_data';
+        return raw || null;
+    }
+    function refresh(){
+        const u=user();
+        document.querySelectorAll('.sidebar .nav-btn').forEach(btn=>{
+            const permission=permissionForButton(btn);
+            let ok=permission ? allowed(permission) : true;
+            if(btn.id==='nav_reports_menu_btn') ok=allowed('reports')||allowed('report_clients')||allowed('report_suppliers')||allowed('report_accounts');
+            if(btn.id==='nav_trip_supplies_menu_btn') ok=allowed('trip_supplies')||allowed('trip_total_settlement');
+            btn.classList.toggle('permission-restricted', !ok);
+            btn.dataset.permissionAllowed=ok?'1':'0';
+            btn.setAttribute('aria-disabled', ok?'false':'true');
+            btn.title=ok?'':'غير مصرح لك بفتح هذا القسم';
+            btn.classList.add('nh-permission-option');
+        });
+        document.querySelectorAll('.sidebar .submenu-container').forEach(menu=>{
+            menu.classList.add('nh-permission-options-visible');
+        });
+        document.querySelectorAll('.tab-panel').forEach(panel=>{
+            const id=panel.id;
+            const ok=allowed(id);
+            panel.classList.toggle('permission-restricted', !ok);
+            panel.dataset.permissionAllowed=ok?'1':'0';
+            panel.setAttribute('aria-hidden', ok?'false':'true');
+        });
+        document.querySelectorAll('#nh_print_all_program,#nh_print_all_program_side').forEach(btn=>{
+            const ok=!!u && u.role==='manager';
+            btn.hidden=!ok; btn.disabled=!ok; btn.dataset.permissionAllowed=ok?'1':'0';
+        });
+    }
+    window.nhRefreshPermissions=refresh;
+    document.addEventListener('click', function(e){
+        const btn=e.target.closest('.sidebar .nav-btn');
+        if(btn && btn.dataset.permissionAllowed==='0'){
+            e.preventDefault(); e.stopImmediatePropagation();
+            alert('ليس لديك صلاحية لفتح هذا القسم.');
+            return false;
+        }
+        const printBtn=e.target.closest('#nh_print_all_program,#nh_print_all_program_side');
+        if(printBtn && (!user() || user().role!=='manager')){
+            e.preventDefault(); e.stopImmediatePropagation();
+            alert('طباعة البرنامج بالكامل متاحة للأدمن / المشرف فقط.');
+            return false;
+        }
+    }, true);
+    const observer=new MutationObserver(()=>refresh());
+    document.addEventListener('DOMContentLoaded', function(){
+        refresh();
+        observer.observe(document.body,{childList:true,subtree:true});
+    });
+})();
+</script>
 </body>
 </html>
 <script id="nh-final-independent-statements">
